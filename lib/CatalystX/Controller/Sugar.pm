@@ -9,7 +9,7 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
  use CatalystX::Controller::Sugar;
 
  sub foo :Local {
-    my($self, $c) = @_;
+    my($self, $c) = @_; # not required
 
     stash name => "John Doe";
     session id => rand 999_999_999;
@@ -21,13 +21,89 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
 use Moose;
 use Moose::Exporter;
+use MooseX::MethodAttributes ();
+use Catalyst::Controller ();
 
 Moose::Exporter->setup_import_methods(
-    as_is => [qw/ stash session /],
-    with_caller => [qw/ init_meta /],
+    as_is => [qw/ session stash /],
+    with_caller => [qw/ chained private /],
+    also  => [qw/ Moose MooseX::MethodAttributes /],
 );
 
-=head1 METHODS
+=head1 EXPORTED FUNCTIONS
+
+=head2 private
+
+ private $name => sub {};
+
+Same as:
+
+ sub $name :Private {};
+
+=cut
+
+sub private {
+    my $class = shift;
+    my $name  = shift;
+    my $code  = pop;
+    my($c, $ns);
+ 
+    $c  = ($class =~ /^(.*)::C(?:ontroller)?::/)[0];
+    $ns = $class->action_namespace($c);
+
+    $c->dispatcher->register($c,
+        $class->create_action(
+            name => $name,
+            code => $code,
+            reverse => $ns ? "$ns/$name" : $name,
+            namespace => $ns,
+            attributes => { Private => [] },
+        )
+    );
+}
+
+=head2 chained
+
+ chained $Chained => $PathPart => sub { };
+ chained $Chained => $PathPart => $CaptureArgs sub { };
+ chained $Chained => "$PathPart/" => $Args sub { };
+
+Same as:
+
+ sub "$Chained/$PathPart" : Chained() PathPart() { }
+ sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
+ sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
+
+=cut
+
+sub chained {
+    my $class = shift;
+    my $code  = pop;
+    my %attrs = map { $_, [shift(@_)] } qw/Chained PathPart CaptureArgs/;
+    my($c, $name, $ns);
+
+    $c  = ($class =~ /^(.*)::C(?:ontroller)?::/)[0];
+    $ns = $class->action_namespace($c);
+
+    # endpoint
+    if($attrs{'PathPart'}->[0] =~ s,/$,,) {
+        $attrs{'Args'} = delete $attrs{'CaptureArgs'};
+    }
+
+    $name =  $attrs{'Chained'}->[0] ."/" .$attrs{'PathPart'}->[0];
+    $name =~ s,//,/,g;
+    $name =~ s,^/,,;
+
+    $c->dispatcher->register($c,
+        $class->create_action(
+            name => $name,
+            code => $code,
+            reverse => $ns ? "$ns/$name" : $name,
+            namespace => $ns,
+            attributes => \%attrs,
+        )
+    );
+}
 
 =head2 stash
 
@@ -46,7 +122,7 @@ sub stash {
     }
     elsif(@_ % 2 == 0) {
         while(@_) {
-            my($key, $value) = splice @_, 2;
+            my($key, $value) = splice @_, 0, 2;
             $c->stash->{$key} = $value;
         }
     }
@@ -87,7 +163,7 @@ sub session {
 
 sub _get_context_object {
     package DB;
-    () = caller(1);
+    () = caller(2);
     return $DB::args[1];
 }
 
@@ -98,18 +174,13 @@ See L<Moose::Exporter>.
 =cut
 
 sub init_meta {
-    my $c = shift;
-    my %p = @_;
-    my $caller = $p{'for_class'};
-
-    if($p{'superclasses'}) {
-        push @{ $p{'superclasses'} }, "Catalyst::Controller";
-    }
-    else {
-        $p{'superclasses'} = [ "Catalyst::Controller" ];
-    }
+    my $c   = shift;
+    my %p   = @_;
+    my $for = $p{'for_class'};
 
     Moose->init_meta(%p);
+
+    $for->meta->superclasses("Catalyst::Controller");
 }
 
 =head1 BUGS
