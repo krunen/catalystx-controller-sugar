@@ -4,18 +4,31 @@ package CatalystX::Controller::Sugar;
 
 CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
+=head1 VERSION
+
+0.01
+
 =head1 SYNOPSIS
 
  use CatalystX::Controller::Sugar;
 
- sub foo :Local {
-    my($self, $c) = @_; # not required
+ private foo => sub {
+   res->body("Hey!");
+ };
 
-    stash name => "John Doe";
-    session id => rand 999_999_999;
+ chained "/" => "part" => sub {
+   stash answer => 42;
+ };
 
-    # ...
- }
+ chained "/part" => "endpoint/" => sub {
+   res->body("The answer is: " .stash("answer"));
+ };
+
+ chained "/" => "multimethod" => {
+   post => sub { ... },
+   get => sub { ... },
+   delete => sub { ... },
+ };
 
 =cut
 
@@ -30,74 +43,10 @@ Moose::Exporter->setup_import_methods(
     also  => [qw/ Moose MooseX::MethodAttributes /],
 );
 
+our $VERSION = "0.01";
 our($RES, $REQ, $C);
 
-sub _wrapper {
-    my $next = shift;
-    my $self = shift;
-
-    local $C   = shift;
-    local $RES = $C->res;
-    local $REQ = $C->req;
-
-    if(ref $next eq 'HASH') {
-        my $method = lc $REQ->method;
-        if($next->{$method}) {
-            return $next->{$method}->($self, $C, @_);
-        }
-        else {
-            die "NO SUCH HTTP METHOD\n";
-        }
-    }
-    else {
-        return $next->($self, $C, @_);
-    }
-};
-
 =head1 EXPORTED FUNCTIONS
-
-=head2 res
-
- $response_obj = res;
-
-=head2 req
-
- $request_obj = req;
-
-=cut
-
-sub res { $RES }
-sub req { $REQ }
-
-=head2 private
-
- private $name => sub {};
-
-Same as:
-
- sub $name :Private {};
-
-=cut
-
-sub private {
-    my $class = shift;
-    my $name  = shift;
-    my $code  = pop;
-    my($c, $ns);
- 
-    $c  = ($class =~ /^(.*)::C(?:ontroller)?::/)[0];
-    $ns = $class->action_namespace($c);
-
-    $c->dispatcher->register($c,
-        $class->create_action(
-            name => $name,
-            code => sub { _wrapper($code, @_) },
-            reverse => $ns ? "$ns/$name" : $name,
-            namespace => $ns,
-            attributes => { Private => [] },
-        )
-    );
-}
 
 =head2 chained
 
@@ -142,6 +91,49 @@ sub chained {
         )
     );
 }
+
+=head2 private
+
+ private $name => sub {};
+
+Same as:
+
+ sub $name :Private {};
+
+=cut
+
+sub private {
+    my $class = shift;
+    my $name  = shift;
+    my $code  = pop;
+    my($c, $ns);
+ 
+    $c  = ($class =~ /^(.*)::C(?:ontroller)?::/)[0];
+    $ns = $class->action_namespace($c);
+
+    $c->dispatcher->register($c,
+        $class->create_action(
+            name => $name,
+            code => sub { _wrapper($code, @_) },
+            reverse => $ns ? "$ns/$name" : $name,
+            namespace => $ns,
+            attributes => { Private => [] },
+        )
+    );
+}
+
+=head2 res
+
+ $response_obj = res;
+
+=head2 req
+
+ $request_obj = req;
+
+=cut
+
+sub res { $RES }
+sub req { $REQ }
 
 =head2 stash
 
@@ -204,6 +196,28 @@ sub _get_context_object {
     () = caller(2);
     return $DB::args[1];
 }
+
+sub _wrapper {
+    my $next = shift;
+    my $self = shift;
+
+    local $C   = shift;
+    local $RES = $C->res;
+    local $REQ = $C->req;
+
+    if(ref $next eq 'HASH') {
+        my $method = lc $REQ->method;
+        if($next->{$method}) {
+            return $next->{$method}->($self, $C, @_);
+        }
+        else {
+            die "NO SUCH HTTP METHOD\n";
+        }
+    }
+    else {
+        return $next->($self, $C, @_);
+    }
+};
 
 =head2 init_meta
 

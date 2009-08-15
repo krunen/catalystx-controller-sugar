@@ -1,0 +1,85 @@
+NAME
+    CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
+
+VERSION
+    0.01
+
+SYNOPSIS
+     use CatalystX::Controller::Sugar;
+
+     private foo => sub {
+       res->body("Hey!");
+     };
+
+     chained "/" => "part" => sub {
+       stash answer => 42;
+     };
+
+     chained "/part" => "endpoint/" => sub {
+       res->body("The answer is: " .stash("answer"));
+     };
+
+     chained "/" => "multimethod" => {
+       post => sub { ... },
+       get => sub { ... },
+       delete => sub { ... },
+     };
+
+EXPORTED FUNCTIONS
+  chained
+     chained $Chained => $PathPart => sub { };
+     chained $Chained => $PathPart => $CaptureArgs => sub { };
+     chained $Chained => "$PathPart/" => $Args => sub { };
+     chained $Chained => "$PathPart/" => ... => { post => sub {}, ... };
+
+    Same as:
+
+     sub "$Chained/$PathPart" : Chained() PathPart() { }
+     sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
+     sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
+
+  private
+     private $name => sub {};
+
+    Same as:
+
+     sub $name :Private {};
+
+  res
+     $response_obj = res;
+
+  req
+     $request_obj = req;
+
+  stash
+     $hash_ref = stash $key => $value, ...;
+     $value = stash $key;
+
+    Set/get data from the stash.
+
+  session
+     $hash_ref == session $key => $value;
+     $value = session $key;
+
+    Set/get data from the session.
+
+  init_meta
+    See Moose::Exporter.
+
+BUGS
+    Please report any bugs or feature requests to
+    "bug-catalystx-controller-sugar at rt.cpan.org", or through the web
+    interface at
+    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=CatalystX-Controller-Sug
+    ar>. I will be notified, and then you'll automatically be notified of
+    progress on your bug as I make changes.
+
+COPYRIGHT & LICENSE
+    Copyright 2007 Jan Henning Thorsen, all rights reserved.
+
+    This program is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
+AUTHOR
+    Jan Henning Thorsen, "<jhthorsen at cpan.org>"
+
