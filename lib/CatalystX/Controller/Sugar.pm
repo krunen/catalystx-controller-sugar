@@ -36,6 +36,7 @@ use Moose;
 use Moose::Exporter;
 use MooseX::MethodAttributes ();
 use Catalyst::Controller ();
+use Catalyst::Utils;
 
 Moose::Exporter->setup_import_methods(
     as_is => [qw/ session stash req res /],
@@ -44,22 +45,37 @@ Moose::Exporter->setup_import_methods(
 );
 
 our $VERSION = "0.01";
-our($RES, $REQ, $C);
+our($RES, $REQ, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
 
 =head2 chained
 
  chained $Chained => $PathPart => sub { };
- chained $Chained => $PathPart => $CaptureArgs => sub { };
- chained $Chained => "$PathPart/" => $Args => sub { };
- chained $Chained => "$PathPart/" => ... => { post => sub {}, ... };
+ chained $Chained => $PathPart => \@CaptureArgs => sub { };
+ chained $Chained => "$PathPart" => $Args => sub { };
+ chained $Chained => "$PathPart" => ... => \%method_map;
 
 Same as:
 
- sub "$Chained/$PathPart" : Chained() PathPart() { }
+ sub "$Chained/$PathPart" : Chained() PathPart() Args { }
  sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
  sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
+
+C<@CaptureArgs> is a list of names of the captured argumenst, which
+can be retrieved using L<captured>.
+
+C<$Args> is a number of Args to capture at the end of the chain.
+
+C<%method_map> can be used if you want to dispatch to a specific method,
+for a certain HTTP method: (The HTTP method is in lowercase)
+
+ %method_map = (
+    post => sub { ... },
+    get => sub { ... },
+    delete => sub { ... },
+    #...
+ );
 
 =cut
 
@@ -67,13 +83,22 @@ sub chained {
     my $class = shift;
     my $code  = pop;
     my %attrs = map { $_, [shift(@_)] } qw/Chained PathPart CaptureArgs/;
-    my($c, $name, $ns);
+    my($c, $name, $ns, $named_captures);
 
-    $c  = ($class =~ /^(.*)::C(?:ontroller)?::/)[0];
+    $c  = Catalyst::Utils::class2appclass($class);
     $ns = $class->action_namespace($c);
 
-    # endpoint
-    if($attrs{'PathPart'}->[0] =~ s,/$,,) {
+    # CaptureArgs or Args?
+    if(defined $attrs{'CaptureArgs'}->[0]) {
+        if(ref $attrs{'CaptureArgs'}->[0] eq 'ARRAY') {
+            $named_captures = $attrs{'CaptureArgs'}->[0];
+            $attrs{'CaptureArgs'}->[0] = @$named_captures;
+        }
+        else {
+            $attrs{'Args'} = delete $attrs{'CaptureArgs'};
+        }
+    }
+    else {
         $attrs{'Args'} = delete $attrs{'CaptureArgs'};
     }
 
@@ -84,12 +109,47 @@ sub chained {
     $c->dispatcher->register($c,
         $class->create_action(
             name => $name,
-            code => sub { _wrapper($code, @_) },
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
             attributes => \%attrs,
+            code => sub {
+                _wrap_chained({
+                    code => $code,
+                    named_captures => $named_captures,
+                    args => \@_,
+                });
+            },
         )
     );
+}
+
+sub _wrap_chained {
+    my $args = shift;
+    my $code = $args->{'code'};
+
+    local $CONTEXT  = $args->{'args'}[1];
+    local $RES      = $CONTEXT->res;
+    local $REQ      = $CONTEXT->req;
+    local %CAPTURED = _setup_captured($args->{'named_captures'});
+
+    if(ref $code eq 'HASH') {
+        my $method = lc $REQ->method;
+        if($code->{$method}) {
+            return $code->{$method}->(@{ $args->{'args'} });
+        }
+        else {
+            confess "chained(..., { '$method' => undef })";
+        }
+    }
+    else {
+        return $code->(@{ $args->{'args'} });
+    }
+}
+
+sub _setup_captured {
+    my @names = ref $_[0] ? @{ $_[0] } : ();
+
+    return map { shift(@names), $_ } @{ $REQ->captures };
 }
 
 =head2 private
@@ -103,23 +163,32 @@ Same as:
 =cut
 
 sub private {
-    my $class = shift;
-    my $name  = shift;
-    my $code  = pop;
+    my($class, $name, $code) = @_;
     my($c, $ns);
  
-    $c  = ($class =~ /^(.*)::C(?:ontroller)?::/)[0];
+    $c  = Catalyst::Utils::class2appclass($class);
     $ns = $class->action_namespace($c);
 
     $c->dispatcher->register($c,
         $class->create_action(
             name => $name,
-            code => sub { _wrapper($code, @_) },
+            code => sub { _wrap_private($code, @_) },
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
             attributes => { Private => [] },
         )
     );
+}
+
+sub _wrap_private {
+    my($code, $self);
+
+    ($code, $self, $CONTEXT) = @_;
+
+    local $RES = $CONTEXT->res;
+    local $REQ = $CONTEXT->req;
+
+    return $code->($self, $CONTEXT, @_);
 }
 
 =head2 res
@@ -135,6 +204,16 @@ sub private {
 sub res { $RES }
 sub req { $REQ }
 
+=head2 captured
+
+ $value = captured($name);
+
+=cut
+
+sub captured {
+    return $CAPTURED{$_[0]};
+}
+
 =head2 stash
 
  $hash_ref = stash $key => $value, ...;
@@ -145,7 +224,7 @@ Set/get data from the stash.
 =cut
 
 sub stash {
-    my $c = $C || _get_context_object();
+    my $c = $CONTEXT || _get_context_object();
 
     if(@_ == 1) {
         return $c->stash->{$_[0]};
@@ -173,7 +252,7 @@ Set/get data from the session.
 =cut
 
 sub session {
-    my $c = $C || _get_context_object();
+    my $c = $CONTEXT || _get_context_object();
 
     if(@_ == 1) {
         return $c->session->{$_[0]};
@@ -196,28 +275,6 @@ sub _get_context_object {
     () = caller(2);
     return $DB::args[1];
 }
-
-sub _wrapper {
-    my $next = shift;
-    my $self = shift;
-
-    local $C   = shift;
-    local $RES = $C->res;
-    local $REQ = $C->req;
-
-    if(ref $next eq 'HASH') {
-        my $method = lc $REQ->method;
-        if($next->{$method}) {
-            return $next->{$method}->($self, $C, @_);
-        }
-        else {
-            die "NO SUCH HTTP METHOD\n";
-        }
-    }
-    else {
-        return $next->($self, $C, @_);
-    }
-};
 
 =head2 init_meta
 
