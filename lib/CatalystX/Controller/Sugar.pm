@@ -16,19 +16,28 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
    res->body("Hey!");
  };
 
- chained "/" => "part" => sub {
-   stash answer => 42;
+ chained "/" => "age" => ['age'], sub {
+   stash multiplier => 2;
+   res->print( captured('age') );
  };
 
- chained "/part" => "endpoint/" => sub {
-   res->body("The answer is: " .stash("answer"));
+ chained "/age" => "endpoint" => sub {
+   my $twice = stash("multiplier") * captured('age');
+   res->body( "Twice the age is: $twice" );
  };
 
  chained "/" => "multimethod" => {
    post => sub { ... },
    get => sub { ... },
    delete => sub { ... },
+   default => sub { ... },
  };
+
+=head1 NOTE
+
+C<$self> and C<$c> is not part of the argument list inside a
+L<chained()> or L<private()> action. C<$c> is acquired by calling L<c>,
+and C<$self> is available by calling L<controller>.
 
 =cut
 
@@ -39,13 +48,13 @@ use Catalyst::Controller ();
 use Catalyst::Utils;
 
 Moose::Exporter->setup_import_methods(
-    as_is => [qw/ session stash req res /],
+    as_is => [qw/ c captured controller req res session stash /],
     with_caller => [qw/ chained private /],
     also  => [qw/ Moose MooseX::MethodAttributes /],
 );
 
 our $VERSION = "0.01";
-our($RES, $REQ, $CONTEXT, %CAPTURED);
+our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
 
@@ -74,6 +83,7 @@ for a certain HTTP method: (The HTTP method is in lowercase)
     post => sub { ... },
     get => sub { ... },
     delete => sub { ... },
+    default => sub { ... },
     #...
  );
 
@@ -83,7 +93,7 @@ sub chained {
     my $class = shift;
     my $code  = pop;
     my %attrs = map { $_, [shift(@_)] } qw/Chained PathPart CaptureArgs/;
-    my($c, $name, $ns, $named_captures);
+    my($c, $self, $name, $ns);
 
     $c  = Catalyst::Utils::class2appclass($class);
     $ns = $class->action_namespace($c);
@@ -91,8 +101,8 @@ sub chained {
     # CaptureArgs or Args?
     if(defined $attrs{'CaptureArgs'}->[0]) {
         if(ref $attrs{'CaptureArgs'}->[0] eq 'ARRAY') {
-            $named_captures = $attrs{'CaptureArgs'}->[0];
-            $attrs{'CaptureArgs'}->[0] = @$named_captures;
+            $attrs{'capture_names'} = $attrs{'CaptureArgs'}->[0];
+            $attrs{'CaptureArgs'}->[0] = @{ $attrs{'capture_names'} };
         }
         else {
             $attrs{'Args'} = delete $attrs{'CaptureArgs'};
@@ -106,48 +116,63 @@ sub chained {
     $name =~ s,//,/,g;
     $name =~ s,^/,,;
 
+    $attrs{'capture_names'} ||= [];
+
     $c->dispatcher->register($c,
         $class->create_action(
             name => $name,
+            code => _create_chained_code($class, $code),
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
             attributes => \%attrs,
-            code => sub {
-                _wrap_chained({
-                    code => $code,
-                    named_captures => $named_captures,
-                    args => \@_,
-                });
-            },
         )
     );
 }
 
-sub _wrap_chained {
-    my $args = shift;
-    my $code = $args->{'code'};
-
-    local $CONTEXT  = $args->{'args'}[1];
-    local $RES      = $CONTEXT->res;
-    local $REQ      = $CONTEXT->req;
-    local %CAPTURED = _setup_captured($args->{'named_captures'});
+sub _create_chained_code {
+    my($class, $code) = @_;
 
     if(ref $code eq 'HASH') {
-        my $method = lc $REQ->method;
-        if($code->{$method}) {
-            return $code->{$method}->(@{ $args->{'args'} });
-        }
-        else {
-            confess "chained(..., { '$method' => undef })";
-        }
+        return sub {
+            my $controller  = shift;
+            my $method      = lc $_[0]->req->method;
+            local $CONTEXT  = shift;
+            local $SELF     = $class;
+            local $RES      = $CONTEXT->res;
+            local $REQ      = $CONTEXT->req;
+            local %CAPTURED = _setup_captured();
+
+            if($code->{$method}) {
+                return $code->{$method}->(@_);
+            }
+            elsif($code->{'default'}) {
+                return $code->{'default'}->(@_);
+            }
+            else {
+                confess "chained(..., { '$method' => undef })";
+            }
+        };
     }
     else {
-        return $code->(@{ $args->{'args'} });
+        return sub {
+            my $controller  = shift;
+            local $CONTEXT  = shift;
+            local $SELF     = $class;
+            local $RES      = $CONTEXT->res;
+            local $REQ      = $CONTEXT->req;
+            local %CAPTURED = _setup_captured();
+
+            return $code->(@_);
+        };
     }
 }
 
 sub _setup_captured {
-    my @names = ref $_[0] ? @{ $_[0] } : ();
+    my @names;
+
+    for my $action (@{ $CONTEXT->action->chain }) {
+        push @names, @{ $action->attributes->{'capture_names'} };
+    }
 
     return map { shift(@names), $_ } @{ $REQ->captures };
 }
@@ -163,8 +188,9 @@ Same as:
 =cut
 
 sub private {
+    return;
     my($class, $name, $code) = @_;
-    my($c, $ns);
+    my($c, $self, $ns);
  
     $c  = Catalyst::Utils::class2appclass($class);
     $ns = $class->action_namespace($c);
@@ -172,7 +198,7 @@ sub private {
     $c->dispatcher->register($c,
         $class->create_action(
             name => $name,
-            code => sub { _wrap_private($code, @_) },
+            code => _create_private_code($class, $code),
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
             attributes => { Private => [] },
@@ -180,29 +206,50 @@ sub private {
     );
 }
 
-sub _wrap_private {
-    my($code, $self);
+sub _create_private_code {
+    my($class, $code) = @_;
 
-    ($code, $self, $CONTEXT) = @_;
+    return sub {
+        my $controller = shift;
+        local $CONTEXT = shift;
+        local $SELF    = $class;
+        local $RES     = $CONTEXT->res;
+        local $REQ     = $CONTEXT->req;
 
-    local $RES = $CONTEXT->res;
-    local $REQ = $CONTEXT->req;
-
-    return $code->($self, $CONTEXT, @_);
+        return $code->(@_);
+    };
 }
 
-=head2 res
+=head2 c
 
- $response_obj = res;
+ $context_obj = c;
+
+Returns the context object for this request.
+
+=head2 controller
+
+ $controller_obj = controller;
+
+Returns the controller class.
 
 =head2 req
 
  $request_obj = req;
 
+Returns the request object for this request.
+
+=head2 res
+
+ $response_obj = res;
+
+Returns the response object for this request.
+
 =cut
 
-sub res { $RES }
+sub c { $CONTEXT }
+sub controller { $SELF }
 sub req { $REQ }
+sub res { $RES }
 
 =head2 captured
 

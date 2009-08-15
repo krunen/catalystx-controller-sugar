@@ -26,6 +26,22 @@ chained "/" => "http_method" => {
     get  => sub { res->print("HTTP GET") },
 };
 
+chained "/" => "age" => ['age'], sub {
+    res->print("age=" .captured('age'));
+};
+
+chained "/age" => "end" => 1 => sub {
+    res->print(" => age=" .captured('age') ." => [@_]");
+};
+
+chained "/", "c" => sub {
+    res->body(ref c);
+};
+
+chained "/", "ctrl" => sub {
+    res->body(controller);
+};
+
 private foo => sub {
     # ...
 };

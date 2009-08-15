@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use lib q(lib);
-use Test::More tests => 7;
+use Test::More tests => 10;
 
 BEGIN {
     use lib q(t/lib);
@@ -44,3 +44,20 @@ is(
     "/ch/http_method => get",
 );
 
+is(
+    request("/age/42/end/foo")->content,
+    "age=42 => age=42 => [foo]",
+    "/age/42/end/foo named captures",
+);
+
+is(
+    request("/ctrl")->content,
+    "CataTest::Controller::Sugar",
+    "controller() returns controller class",
+);
+
+is(
+    request("/c")->content,
+    "CataTest",
+    "c() returns context object",
+);
