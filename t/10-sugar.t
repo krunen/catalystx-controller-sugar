@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use lib q(lib);
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 BEGIN {
     use lib q(t/lib);
@@ -60,4 +60,10 @@ is(
     request("/c")->content,
     "CataTest",
     "c() returns context object",
+);
+
+is(
+    request('/global')->content,
+    'chained($pathpart => sub{})',
+    'chained $path_part => sub {}',
 );

@@ -42,6 +42,10 @@ chained "/", "ctrl" => sub {
     res->body(controller);
 };
 
+chained "global" => sub {
+    res->body('chained($pathpart => sub{})');
+};
+
 private foo => sub {
     # ...
 };

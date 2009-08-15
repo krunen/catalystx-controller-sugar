@@ -36,8 +36,8 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 =head1 NOTE
 
 C<$self> and C<$c> is not part of the argument list inside a
-L<chained()> or L<private()> action. C<$c> is acquired by calling L<c>,
-and C<$self> is available by calling L<controller>.
+L<chained()> or L<private()> action. C<$c> is acquired by calling L<c()>,
+and C<$self> is available by calling L<controller()>.
 
 =cut
 
@@ -60,21 +60,24 @@ our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head2 chained
 
+ chained $PathPart => sub { };
  chained $Chained => $PathPart => sub { };
- chained $Chained => $PathPart => \@CaptureArgs => sub { };
- chained $Chained => "$PathPart" => $Args => sub { };
- chained $Chained => "$PathPart" => ... => \%method_map;
+ chained $Chained => $PathPart => \@CaptureArgs, sub { };
+ chained $Chained => $PathPart => $Args => sub { };
+ chained $Chained => $PathPart => ..., \%method_map;
 
 Same as:
 
+ sub "$PathPart" : Global($PathPart) { }
  sub "$Chained/$PathPart" : Chained() PathPart() Args { }
  sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
  sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
 
 C<@CaptureArgs> is a list of names of the captured argumenst, which
-can be retrieved using L<captured>.
+can be retrieved using L<captured()>.
 
-C<$Args> is a number of Args to capture at the end of the chain.
+C<$Args> is a number of Args to capture at the endpoint of a chain. These
+cannot be aquired using L<captured()>, but is instead available in C<@_>.
 
 C<%method_map> can be used if you want to dispatch to a specific method,
 for a certain HTTP method: (The HTTP method is in lowercase)
@@ -97,6 +100,12 @@ sub chained {
 
     $c  = Catalyst::Utils::class2appclass($class);
     $ns = $class->action_namespace($c);
+
+    # chained($path_part => sub {});
+    unless(defined $attrs{'PathPart'}->[0]) {
+        $attrs{'PathPart'} = $attrs{'Chained'};
+        $attrs{'Chained'}  = ["/"];
+    }
 
     # CaptureArgs or Args?
     if(defined $attrs{'CaptureArgs'}->[0]) {
@@ -254,6 +263,12 @@ sub res { $RES }
 =head2 captured
 
  $value = captured($name);
+
+Retrieve data captured in a chain, using the names set with L<chained()>.
+
+ chained "/" => "user" => ["id"], sub {
+   res->body( captured("id") );
+ };
 
 =cut
 
