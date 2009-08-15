@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use lib q(lib);
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 BEGIN {
     use lib q(t/lib);
@@ -37,3 +37,10 @@ is(
     "==> /ch ==> bar/",
     "/ch/bar",
 );
+
+is(
+    request("/http_method")->content,
+    "HTTP GET",
+    "/ch/http_method => get",
+);
+

@@ -25,12 +25,49 @@ use MooseX::MethodAttributes ();
 use Catalyst::Controller ();
 
 Moose::Exporter->setup_import_methods(
-    as_is => [qw/ session stash /],
+    as_is => [qw/ session stash req res /],
     with_caller => [qw/ chained private /],
     also  => [qw/ Moose MooseX::MethodAttributes /],
 );
 
+our($RES, $REQ, $C);
+
+sub _wrapper {
+    my $next = shift;
+    my $self = shift;
+
+    local $C   = shift;
+    local $RES = $C->res;
+    local $REQ = $C->req;
+
+    if(ref $next eq 'HASH') {
+        my $method = lc $REQ->method;
+        if($next->{$method}) {
+            return $next->{$method}->($self, $C, @_);
+        }
+        else {
+            die "NO SUCH HTTP METHOD\n";
+        }
+    }
+    else {
+        return $next->($self, $C, @_);
+    }
+};
+
 =head1 EXPORTED FUNCTIONS
+
+=head2 res
+
+ $response_obj = res;
+
+=head2 req
+
+ $request_obj = req;
+
+=cut
+
+sub res { $RES }
+sub req { $REQ }
 
 =head2 private
 
@@ -54,7 +91,7 @@ sub private {
     $c->dispatcher->register($c,
         $class->create_action(
             name => $name,
-            code => $code,
+            code => sub { _wrapper($code, @_) },
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
             attributes => { Private => [] },
@@ -65,8 +102,9 @@ sub private {
 =head2 chained
 
  chained $Chained => $PathPart => sub { };
- chained $Chained => $PathPart => $CaptureArgs sub { };
- chained $Chained => "$PathPart/" => $Args sub { };
+ chained $Chained => $PathPart => $CaptureArgs => sub { };
+ chained $Chained => "$PathPart/" => $Args => sub { };
+ chained $Chained => "$PathPart/" => ... => { post => sub {}, ... };
 
 Same as:
 
@@ -97,7 +135,7 @@ sub chained {
     $c->dispatcher->register($c,
         $class->create_action(
             name => $name,
-            code => $code,
+            code => sub { _wrapper($code, @_) },
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
             attributes => \%attrs,
@@ -115,7 +153,7 @@ Set/get data from the stash.
 =cut
 
 sub stash {
-    my $c = _get_context_object();
+    my $c = $C || _get_context_object();
 
     if(@_ == 1) {
         return $c->stash->{$_[0]};
@@ -143,7 +181,7 @@ Set/get data from the session.
 =cut
 
 sub session {
-    my $c = _get_context_object();
+    my $c = $C || _get_context_object();
 
     if(@_ == 1) {
         return $c->session->{$_[0]};

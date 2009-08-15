@@ -10,22 +10,24 @@ chained "/" => "sugar/" => sub {
 };
 
 chained "/" => "ch" => sub {
-    my($self, $c) = @_;
-    $c->res->print("==> /ch");
+    res->print("==> /ch");
 };
 
 chained "/ch" => "foo/" => sub {
-    my($self, $c) = @_;
-    $c->res->print(" ==> foo/");
+    res->print(" ==> foo/");
 };
 
 chained "/ch" => "bar/" => sub {
-    my($self, $c) = @_;
-    $c->res->print(" ==> bar/");
+    res->print(" ==> bar/");
+};
+
+chained "/" => "http_method/" => {
+    post => sub { res->print("HTTP POST") },
+    get  => sub { res->print("HTTP GET") },
 };
 
 private foo => sub {
-    my($self, $c) = @_;
+    # ...
 };
 
 1;
