@@ -10,9 +10,8 @@ BEGIN {
     use_ok("Catalyst::Test", "CataTest");
 }
 
-is(
-    request("/")->content,
-    "index page rocks!",
+ok(
+    request("/")->is_success,
     "index page received"
 );
 is(
@@ -64,6 +63,6 @@ is(
 
 is(
     request('/global')->content,
-    'chained($pathpart => sub{})',
+    'chain($pathpart => sub{})',
     'chained $path_part => sub {}',
 );

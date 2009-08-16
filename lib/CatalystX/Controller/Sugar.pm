@@ -16,17 +16,25 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
    res->body("Hey!");
  };
 
- chained "/" => "age" => ['age'], sub {
+ # /
+ chain sub {
+    # root chain
+ };
+
+ # /age/*
+ chain "/" => "age" => ['age'], sub {
    stash multiplier => 2;
    res->print( captured('age') );
  };
 
- chained "/age" => "endpoint" => sub {
+ # /age/*/endpoint/*
+ chain "/age" => "endpoint" => sub {
    my $twice = stash("multiplier") * captured('age');
    res->body( "Twice the age is: $twice" );
  };
 
- chained "/" => "multimethod" => {
+ # /multimethod
+ chain "multimethod" => {
    post => sub { ... },
    get => sub { ... },
    delete => sub { ... },
@@ -36,7 +44,7 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 =head1 NOTE
 
 C<$self> and C<$c> is not part of the argument list inside a
-L<chained()> or L<private()> action. C<$c> is acquired by calling L<c()>,
+L<chain()> or L<private()> action. C<$c> is acquired by calling L<c()>,
 and C<$self> is available by calling L<controller()>.
 
 =cut
@@ -49,7 +57,7 @@ use Catalyst::Utils;
 
 Moose::Exporter->setup_import_methods(
     as_is => [qw/ c captured controller req res session stash /],
-    with_caller => [qw/ chained private /],
+    with_caller => [qw/ chain private /],
     also  => [qw/ Moose MooseX::MethodAttributes /],
 );
 
@@ -58,20 +66,22 @@ our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
 
-=head2 chained
+=head2 chain
 
- chained $PathPart => sub { };
- chained $Chained => $PathPart => sub { };
- chained $Chained => $PathPart => \@CaptureArgs, sub { };
- chained $Chained => $PathPart => $Args => sub { };
- chained $Chained => $PathPart => ..., \%method_map;
+ 1. chain sub { };
+ 2. chain $PathPart => sub { };
+ 3. chain $Chained => $PathPart => sub { };
+ 4. chain $Chained => $PathPart => \@CaptureArgs, sub { };
+ 5. chain $Chained => $PathPart => $Args => sub { };
+ 6. chain $Chained => $PathPart => ..., \%method_map;
 
 Same as:
 
- sub "$PathPart" : Global($PathPart) { }
- sub "$Chained/$PathPart" : Chained() PathPart() Args { }
- sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
- sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
+ 1. sub "/" : Chained(/) PathPart("") CaptureArgs { }
+ 2. sub "$PathPart" : Global($PathPart) { }
+ 3. sub "$Chained/$PathPart" : Chained() PathPart() Args { }
+ 4. sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
+ 5. sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
 
 C<@CaptureArgs> is a list of names of the captured argumenst, which
 can be retrieved using L<captured()>.
@@ -92,7 +102,7 @@ for a certain HTTP method: (The HTTP method is in lowercase)
 
 =cut
 
-sub chained {
+sub chain {
     my $class = shift;
     my $code  = pop;
     my %attrs = map { $_, [shift(@_)] } qw/Chained PathPart CaptureArgs/;
@@ -101,8 +111,13 @@ sub chained {
     $c  = Catalyst::Utils::class2appclass($class);
     $ns = $class->action_namespace($c);
 
-    # chained($path_part => sub {});
-    unless(defined $attrs{'PathPart'}->[0]) {
+    # chain($path_part => sub {});
+    if(!defined $attrs{'Chained'}->[0]) {
+        $attrs{'CaptureArgs'} = [[]];
+        $attrs{'PathPart'}    = [""];
+        $attrs{'Chained'}     = ["/"];
+    }
+    elsif(!defined $attrs{'PathPart'}->[0]) {
         $attrs{'PathPart'} = $attrs{'Chained'};
         $attrs{'Chained'}  = ["/"];
     }
@@ -130,7 +145,7 @@ sub chained {
     $c->dispatcher->register($c,
         $class->create_action(
             name => $name,
-            code => _create_chained_code($class, $code),
+            code => _create_chain_code($class, $code),
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
             attributes => \%attrs,
@@ -138,7 +153,7 @@ sub chained {
     );
 }
 
-sub _create_chained_code {
+sub _create_chain_code {
     my($class, $code) = @_;
 
     if(ref $code eq 'HASH') {
@@ -158,7 +173,7 @@ sub _create_chained_code {
                 return $code->{'default'}->(@_);
             }
             else {
-                confess "chained(..., { '$method' => undef })";
+                confess "chain(..., { '$method' => undef })";
             }
         };
     }
@@ -264,9 +279,9 @@ sub res { $RES }
 
  $value = captured($name);
 
-Retrieve data captured in a chain, using the names set with L<chained()>.
+Retrieve data captured in a chain, using the names set with L<chain()>.
 
- chained "/" => "user" => ["id"], sub {
+ chain "/" => "user" => ["id"], sub {
    res->body( captured("id") );
  };
 

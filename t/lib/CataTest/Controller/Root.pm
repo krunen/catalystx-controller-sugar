@@ -5,18 +5,18 @@ use CatalystX::Controller::Sugar;
 
 __PACKAGE__->config->{'namespace'} = q();
 
-sub default_handler :Chained("/") PathPart("") Args {
+sub default :Private  {
     my($self, $c) = @_;
-    $c->res->body("index page rocks!");
+    $c->res->body("default page");
 }
 
-sub get_stash :Chained("/") PathPart {
+sub get_stash :Chained("/") PathPart Args(0) {
     my($self, $c) = @_;
     stash foo => 123;
     $c->res->body( stash 'foo' );
 }
 
-sub dump_stash :Chained("/") PathPart {
+sub dump_stash :Chained("/") PathPart Args(0) {
     my($self, $c) = @_;
     stash foo => 42;
     stash bar => [1,2,3];
