@@ -12,6 +12,8 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
  use CatalystX::Controller::Sugar;
 
+ __PACKAGE__->config->{'namespace'} = q();
+
  private foo => sub {
    res->body("Hey!");
  };
@@ -21,20 +23,21 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
     # root chain
  };
 
- # /age/*
- chain "/" => "age" => ['age'], sub {
-   stash multiplier => 2;
-   res->print( captured('age') );
+ # /person/*
+ chain "/" => "person" => ['id'], sub {
+   stash unique => rand;
+   res->print( captured('id') );
  };
 
- # /age/*/endpoint/*
- chain "/age" => "endpoint" => sub {
-   my $twice = stash("multiplier") * captured('age');
-   res->body( "Twice the age is: $twice" );
+ # /person/*/edit/*
+ chain "/person" => "edit" => sub {
+   res->body( sprintf "Person %s is unique: %s"
+     captured('id'), stash('unique')
+   );
  };
 
- # /multimethod
- chain "multimethod" => {
+ # /multi
+ chain "multi" => {
    post => sub { ... },
    get => sub { ... },
    delete => sub { ... },
@@ -111,30 +114,8 @@ sub chain {
     $c  = Catalyst::Utils::class2appclass($class);
     $ns = $class->action_namespace($c);
 
-    # chain($path_part => sub {});
-    if(!defined $attrs{'Chained'}->[0]) {
-        $attrs{'CaptureArgs'} = [[]];
-        $attrs{'PathPart'}    = [""];
-        $attrs{'Chained'}     = ["/"];
-    }
-    elsif(!defined $attrs{'PathPart'}->[0]) {
-        $attrs{'PathPart'} = $attrs{'Chained'};
-        $attrs{'Chained'}  = ["/"];
-    }
-
-    # CaptureArgs or Args?
-    if(defined $attrs{'CaptureArgs'}->[0]) {
-        if(ref $attrs{'CaptureArgs'}->[0] eq 'ARRAY') {
-            $attrs{'capture_names'} = $attrs{'CaptureArgs'}->[0];
-            $attrs{'CaptureArgs'}->[0] = @{ $attrs{'capture_names'} };
-        }
-        else {
-            $attrs{'Args'} = delete $attrs{'CaptureArgs'};
-        }
-    }
-    else {
-        $attrs{'Args'} = delete $attrs{'CaptureArgs'};
-    }
+    _setup_chain_root(\%attrs);
+    _setup_chain_args(\%attrs);
 
     $name =  $attrs{'Chained'}->[0] ."/" .$attrs{'PathPart'}->[0];
     $name =~ s,//,/,g;
@@ -151,6 +132,39 @@ sub chain {
             attributes => \%attrs,
         )
     );
+}
+
+# chain($path_part => sub {});
+sub _setup_chain_root {
+    my $attrs = shift;
+
+    if(!defined $attrs->{'Chained'}->[0]) {
+        $attrs->{'CaptureArgs'} = [[]];
+        $attrs->{'PathPart'}    = [""];
+        $attrs->{'Chained'}     = ["/"];
+    }
+    elsif(!defined $attrs->{'PathPart'}->[0]) {
+        $attrs->{'PathPart'} = $attrs->{'Chained'};
+        $attrs->{'Chained'}  = ["/"];
+    }
+}
+
+# CaptureArgs or Args?
+sub _setup_chain_args {
+    my $attrs = shift;
+
+    if(defined $attrs->{'CaptureArgs'}->[0]) {
+        if(ref $attrs->{'CaptureArgs'}->[0] eq 'ARRAY') {
+            $attrs->{'capture_names'} = $attrs->{'CaptureArgs'}->[0];
+            $attrs->{'CaptureArgs'}->[0] = @{ $attrs->{'capture_names'} };
+        }
+        else {
+            $attrs->{'Args'} = delete $attrs->{'CaptureArgs'};
+        }
+    }
+    else {
+        $attrs->{'Args'} = delete $attrs->{'CaptureArgs'};
+    }
 }
 
 sub _create_chain_code {

@@ -7,21 +7,32 @@ VERSION
 SYNOPSIS
      use CatalystX::Controller::Sugar;
 
+     __PACKAGE__->config->{'namespace'} = q();
+
      private foo => sub {
        res->body("Hey!");
      };
 
-     chained "/" => "age" => ['age'], sub {
-       stash multiplier => 2;
-       res->print( captured('age') );
+     # /
+     chain sub {
+        # root chain
      };
 
-     chained "/age" => "endpoint" => sub {
-       my $twice = stash("multiplier") * captured('age');
-       res->body( "Twice the age is: $twice" );
+     # /person/*
+     chain "/" => "person" => ['id'], sub {
+       stash unique => rand;
+       res->print( captured('id') );
      };
 
-     chained "/" => "multimethod" => {
+     # /person/*/edit/*
+     chain "/person" => "edit" => sub {
+       res->body( sprintf "Person %s is unique: %s"
+         captured('id'), stash('unique')
+       );
+     };
+
+     # /multi
+     chain "multi" => {
        post => sub { ... },
        get => sub { ... },
        delete => sub { ... },
@@ -29,24 +40,26 @@ SYNOPSIS
      };
 
 NOTE
-    $self and $c is not part of the argument list inside a chained() or
+    $self and $c is not part of the argument list inside a chain() or
     private() action. $c is acquired by calling c(), and $self is available
     by calling controller().
 
 EXPORTED FUNCTIONS
-  chained
-     chained $PathPart => sub { };
-     chained $Chained => $PathPart => sub { };
-     chained $Chained => $PathPart => \@CaptureArgs, sub { };
-     chained $Chained => $PathPart => $Args => sub { };
-     chained $Chained => $PathPart => ..., \%method_map;
+  chain
+     1. chain sub { };
+     2. chain $PathPart => sub { };
+     3. chain $Chained => $PathPart => sub { };
+     4. chain $Chained => $PathPart => \@CaptureArgs, sub { };
+     5. chain $Chained => $PathPart => $Args => sub { };
+     6. chain $Chained => $PathPart => ..., \%method_map;
 
     Same as:
 
-     sub "$PathPart" : Global($PathPart) { }
-     sub "$Chained/$PathPart" : Chained() PathPart() Args { }
-     sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
-     sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
+     1. sub "/" : Chained(/) PathPart("") CaptureArgs { }
+     2. sub "$PathPart" : Global($PathPart) { }
+     3. sub "$Chained/$PathPart" : Chained() PathPart() Args { }
+     4. sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
+     5. sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
 
     @CaptureArgs is a list of names of the captured argumenst, which can be
     retrieved using captured().
@@ -95,9 +108,9 @@ EXPORTED FUNCTIONS
   captured
      $value = captured($name);
 
-    Retrieve data captured in a chain, using the names set with chained().
+    Retrieve data captured in a chain, using the names set with chain().
 
-     chained "/" => "user" => ["id"], sub {
+     chain "/" => "user" => ["id"], sub {
        res->body( captured("id") );
      };
 
