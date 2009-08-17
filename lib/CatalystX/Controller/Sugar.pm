@@ -117,14 +117,17 @@ sub chain {
     _setup_chain_root(\%attrs);
     _setup_chain_args(\%attrs);
 
-    $name =   $attrs{'Chained'}->[0] ."/" .$attrs{'PathPart'}->[0];
-    $name =~  s,/+,/,g;
-    $name =~  s,^/,,;
-    $name ||= "ROOT";
+    $name = $attrs{'Chained'}->[0] ."/" .$attrs{'PathPart'}->[0];
 
-    if($c->dispatcher->get_action("ROOT", $class)) {
-        $name = "ROOT/$name";
+    if($c->dispatcher->get_action("ROOT", $ns)) {
+        $name                  = "ROOT/" .$name;
+        $attrs{'Chained'}->[0] =~ s,/,/ROOT/,;
+        $attrs{'Chained'}->[0] =~ s,/$,,;
     }
+
+    $name   =~ s,/+,/,g;
+    $name   =~ s,^/+,,;
+    $name ||=  "ROOT";
 
     $attrs{'capture_names'} ||= [];
 
@@ -386,23 +389,6 @@ sub init_meta {
     Moose->init_meta(%p);
 
     $for->meta->superclasses("Catalyst::Controller");
-    $for->meta->add_method(get_action_methods => sub {
-        my $self    = shift;
-        my @actions = $self->Catalyst::Controller::get_action_methods(@_);
-        my $i       = 0;
-
-        while($i < @actions) {
-            warn $actions[$i]->name;
-            if($c->meta->find_method_by_name($actions[$i]->name)) {
-                splice @actions, $i, 1;
-            }
-            else {
-                $i++;
-            }
-        }
-
-        return @actions;
-    });
 }
 
 =head1 BUGS

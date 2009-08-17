@@ -4,7 +4,13 @@ use CatalystX::Controller::Sugar;
 
 __PACKAGE__->config->{'namespace'} = q();
 
-#chain sub { };
+chain sub {
+    stash root_is_set => 'yes';
+};
+
+chain test_root => sub {
+    res->body( "exists=" .(stash('root_is_set') || 'no') );
+};
 
 chain "/" => "ch" => [],  sub {
     res->print("==> /ch");
