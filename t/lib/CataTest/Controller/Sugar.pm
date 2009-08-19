@@ -2,55 +2,43 @@ package CataTest::Controller::Sugar;
 
 use CatalystX::Controller::Sugar;
 
-__PACKAGE__->config->{'namespace'} = q();
-
+# /sugar
 chain sub {
-    stash root_is_set => 'yes';
 };
 
-chain test_root => sub {
-    res->body( "exists=" .(stash('root_is_set') || 'no') );
-};
-
-chain "/" => "ch" => [],  sub {
+# /sugar/ch
+chain "ch" => [],  sub {
     res->print("==> /ch");
 };
 
-chain "/ch" => "foo" => sub {
+# /sugar/ch/foo
+chain "ch" => "foo" => sub {
     res->print(" ==> foo/");
 };
 
-chain "/ch" => "bar" => sub {
+# /sugar/ch/bar
+chain "ch" => "bar" => sub {
     res->print(" ==> bar/");
 };
 
-chain "/" => "http_method" => {
-    post => sub { res->print("HTTP POST") },
-    get  => sub { res->print("HTTP GET") },
+# /sugar/user
+chain "user" => ['name'], sub {
+    res->print("user=" .captured('name'));
 };
 
-chain "/" => "age" => ['age'], sub {
-    res->print("age=" .captured('age'));
+# /sugar/user/*/action/...
+chain "user" => "action" => 1 => sub {
+    res->print(" => user=" .captured('name') ." => [@_]");
 };
 
-chain "/age" => "end" => 1 => sub {
-    res->print(" => age=" .captured('age') ." => [@_]");
-};
-
-chain "/", "c" => sub {
+# /sugar/context
+chain "context" => sub {
     res->body(ref c);
 };
 
-chain "/", "ctrl" => sub {
+# /sugar/ctrl
+chain "ctrl" => sub {
     res->body(controller);
-};
-
-chain "global" => sub {
-    res->body('chain($pathpart => sub{})');
-};
-
-private foo => sub {
-    # ...
 };
 
 1;

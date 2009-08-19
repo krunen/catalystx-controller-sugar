@@ -21,16 +21,16 @@ is(
 );
 is(
     request("/dump_stash")->content,
-    q($VAR1 = {'bar' => [1,2,3],'foo' => 42};),
+    q($VAR1 = {'bar' => [1,2,3],'foo' => 42,'root_is_set' => 'yes'};),
     "/dump_stash"
 );
 is(
-    request("/ch/foo")->content,
+    request("/sugar/ch/foo")->content,
     "==> /ch ==> foo/",
     "/ch/foo",
 );
 is(
-    request("/ch/bar")->content,
+    request("/sugar/ch/bar")->content,
     "==> /ch ==> bar/",
     "/ch/bar",
 );
@@ -40,17 +40,17 @@ is(
     "/ch/http_method => get",
 );
 is(
-    request("/age/42/end/foo")->content,
-    "age=42 => age=42 => [foo]",
-    "/age/42/end/foo named captures",
+    request("/sugar/user/doe/action/edit")->content,
+    "user=doe => user=doe => [edit]",
+    "/user/[name]/action/... named captures",
 );
 is(
-    request("/ctrl")->content,
+    request("/sugar/ctrl")->content,
     "CataTest::Controller::Sugar",
     "controller() returns controller class",
 );
 is(
-    request("/c")->content,
+    request("/sugar/context")->content,
     "CataTest",
     "c() returns context object",
 );
