@@ -15,7 +15,7 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
  __PACKAGE__->config->{'namespace'} = q();
 
  private foo => sub {
-   res->body("Hey!");
+   res->body('Hey!');
  };
 
  # /
@@ -24,20 +24,20 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
  };
 
  # /person/*
- chain "/" => "person" => ['id'], sub {
+ chain '/' => 'person' => ['id'], sub {
    stash unique => rand;
    res->print( captured('id') );
  };
 
  # /person/*/edit/*
- chain "/person" => "edit" => sub {
-   res->body( sprintf "Person %s is unique: %s"
+ chain '/person' => 'edit' => sub {
+   res->body( sprintf 'Person %s is unique: %s'
      captured('id'), stash('unique')
    );
  };
 
  # /multi
- chain "multi" => {
+ chain '/multi' => {
    post => sub { ... },
    get => sub { ... },
    delete => sub { ... },
@@ -64,7 +64,8 @@ Moose::Exporter->setup_import_methods(
     also  => [qw/ Moose MooseX::MethodAttributes /],
 );
 
-our $VERSION = "0.01";
+our $VERSION = '0.01';
+our $ROOT = 'root';
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
@@ -80,11 +81,10 @@ our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 Same as:
 
- 1. sub "/" : Chained(/) PathPart("") CaptureArgs { }
- 2. sub "$PathPart" : Global($PathPart) { }
- 3. sub "$Chained/$PathPart" : Chained() PathPart() Args { }
- 4. sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
- 5. sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
+ 1. sub _         : Chained('/') PathPart('') CaptureArgs { }
+ 3. sub $PathPart : Chained() PathPart() Args { }
+ 4. sub $PathPart : Chained() PathPart() CaptureArgs() { }
+ 5. sub $PathPart : Chained() PathPart() Args() { }
 
 C<@CaptureArgs> is a list of names of the captured argumenst, which
 can be retrieved using L<captured()>.
@@ -108,28 +108,23 @@ for a certain HTTP method: (The HTTP method is in lowercase)
 sub chain {
     my $class = shift;
     my $code  = pop;
-    my %attrs = map { $_, [shift(@_)] } qw/Chained PathPart CaptureArgs/;
-    my($c, $self, $name, $ns);
+    my($c, $name, $ns, $attrs);
 
-    $c  = Catalyst::Utils::class2appclass($class);
-    $ns = $class->action_namespace($c);
+    $c     = Catalyst::Utils::class2appclass($class);
+    $ns    = $class->action_namespace($c) || q();
+    $attrs = _setup_chain_attrs($ns, @_);
 
-    _setup_chain_root(\%attrs);
-    _setup_chain_args(\%attrs);
-
-    $name = $attrs{'Chained'}->[0] ."/" .$attrs{'PathPart'}->[0];
-
-    if($c->dispatcher->get_action("ROOT", $ns)) {
-        $name                  = "ROOT/" .$name;
-        $attrs{'Chained'}->[0] =~ s,/,/ROOT/,;
-        $attrs{'Chained'}->[0] =~ s,/$,,;
+    if($attrs->{'PathPart'}[0] ne $ns) {
+        $name = $attrs->{'PathPart'}[0];
+    }
+    elsif($c->dispatcher->get_action($ROOT, $ns)) {
+        $name = "";
+    }
+    else {
+        $name = $ROOT;
     }
 
-    $name   =~ s,/+,/,g;
-    $name   =~ s,^/+,,;
-    $name ||=  "ROOT";
-
-    $attrs{'capture_names'} ||= [];
+    #use Data::Dumper; print Dumper $attrs;
 
     $c->dispatcher->register($c,
         $class->create_action(
@@ -137,42 +132,54 @@ sub chain {
             code => _create_chain_code($class, $code),
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
-            attributes => \%attrs,
+            attributes => $attrs,
         )
     );
 }
 
-# chain($path_part => sub {});
-sub _setup_chain_root {
-    my $attrs = shift;
+sub _setup_chain_attrs {
+    my $ns    = shift;
+    my $attrs = {};
 
-    if(!defined $attrs->{'Chained'}->[0]) {
-        $attrs->{'CaptureArgs'} = [[]];
-        $attrs->{'PathPart'}    = [""];
-        $attrs->{'Chained'}     = ["/"];
-    }
-    elsif(!defined $attrs->{'PathPart'}->[0]) {
-        $attrs->{'PathPart'} = $attrs->{'Chained'};
-        $attrs->{'Chained'}  = ["/"];
-    }
-}
+    if(@_) {
+        if(ref $_[-1] eq 'ARRAY') {
+            $attrs->{'CaptureArgs'} = [int @{ $_[-1] }];
+            $attrs->{'capture_names'} = pop @_;
+        }
+        elsif(defined $_[-1] and $_[-1] =~ /^(\d+)$/) {
+            $attrs->{'Args'} = [pop @_];
+        }
 
-# CaptureArgs or Args?
-sub _setup_chain_args {
-    my $attrs = shift;
-
-    if(defined $attrs->{'CaptureArgs'}->[0]) {
-        if(ref $attrs->{'CaptureArgs'}->[0] eq 'ARRAY') {
-            $attrs->{'capture_names'} = $attrs->{'CaptureArgs'}->[0];
-            $attrs->{'CaptureArgs'}->[0] = @{ $attrs->{'capture_names'} };
+        if(defined $_[-1]) {
+            $attrs->{'PathPart'} = [pop @_];
         }
         else {
-            $attrs->{'Args'} = delete $attrs->{'CaptureArgs'};
+            confess "Invalid arguments to chain()";
+        }
+
+        if(defined $_[-1]) {
+            my $with = pop @_;
+            $attrs->{'Chained'} = [$ns ? "/$ns/$with" : "/$with"];
+        }
+        else {
+            $attrs->{'Chained'} = [$ns ? "/$ns/$ROOT" : "/$ROOT"];
         }
     }
-    else {
-        $attrs->{'Args'} = delete $attrs->{'CaptureArgs'};
+    else { # chain(sub {});
+        my($parent, $this) = $ns =~ m[ ^ (.*)/(\w+) $ ]x;
+        my $chained = $parent ? "/$parent"
+                    : $ns     ? "/$ROOT"
+                    :           "/";
+
+        $attrs->{'Chained'}     = [$chained];
+        $attrs->{'PathPart'}    = [$this || $ns];
+        $attrs->{'CaptureArgs'} = [0];
     }
+
+    $attrs->{'Args'} = [] unless($attrs->{'CaptureArgs'});
+    $attrs->{'capture_names'} ||= [];
+
+    return $attrs;
 }
 
 sub _create_chain_code {
@@ -234,9 +241,8 @@ Same as:
 =cut
 
 sub private {
-    return;
     my($class, $name, $code) = @_;
-    my($c, $self, $ns);
+    my($c, $ns);
  
     $c  = Catalyst::Utils::class2appclass($class);
     $ns = $class->action_namespace($c);
@@ -303,8 +309,8 @@ sub res { $RES }
 
 Retrieve data captured in a chain, using the names set with L<chain()>.
 
- chain "/" => "user" => ["id"], sub {
-   res->body( captured("id") );
+ chain '/' => 'user' => ['id'], sub {
+   res->body( captured('id') );
  };
 
 =cut
@@ -388,7 +394,7 @@ sub init_meta {
 
     Moose->init_meta(%p);
 
-    $for->meta->superclasses("Catalyst::Controller");
+    $for->meta->superclasses('Catalyst::Controller');
 }
 
 =head1 BUGS
