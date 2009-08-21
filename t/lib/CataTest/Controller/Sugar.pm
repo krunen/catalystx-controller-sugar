@@ -44,6 +44,4 @@ chain "user" => "action" => 1 => sub {
     res->print(" => user=" .captured('name') ." => [@_]");
 };
 
-# 7 ??
-
 1;

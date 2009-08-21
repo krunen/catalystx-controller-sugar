@@ -10,7 +10,7 @@ SYNOPSIS
      __PACKAGE__->config->{'namespace'} = q();
 
      private foo => sub {
-       res->body("Hey!");
+       res->body('Hey!');
      };
 
      # /
@@ -19,20 +19,20 @@ SYNOPSIS
      };
 
      # /person/*
-     chain "/" => "person" => ['id'], sub {
+     chain '/' => 'person' => ['id'], sub {
        stash unique => rand;
        res->print( captured('id') );
      };
 
      # /person/*/edit/*
-     chain "/person" => "edit" => sub {
-       res->body( sprintf "Person %s is unique: %s"
+     chain '/person' => 'edit' => sub {
+       res->body( sprintf 'Person %s is unique: %s'
          captured('id'), stash('unique')
        );
      };
 
      # /multi
-     chain "multi" => {
+     chain '/multi' => {
        post => sub { ... },
        get => sub { ... },
        delete => sub { ... },
@@ -47,24 +47,35 @@ NOTE
 EXPORTED FUNCTIONS
   chain
      1. chain sub { };
+
      2. chain $PathPart => sub { };
-     3. chain $Chained => $PathPart => sub { };
-     4. chain $Chained => $PathPart => \@CaptureArgs, sub { };
-     5. chain $Chained => $PathPart => $Args => sub { };
-     6. chain $Chained => $PathPart => ..., \%method_map;
+     3. chain $PathPart => $Int, sub { };
+     4. chain $PathPart => \@CaptureArgs, sub { };
+
+     5. chain $Chained => $PathPart => sub { };
+     6. chain $Chained => $PathPart => $Int, sub { };
+     7. chain $Chained => $PathPart => \@CaptureArgs, sub { };
+
+     8. chain ..., \%method_map;
 
     Same as:
 
-     1. sub "/" : Chained(/) PathPart("") CaptureArgs { }
-     2. sub "$PathPart" : Global($PathPart) { }
-     3. sub "$Chained/$PathPart" : Chained() PathPart() Args { }
-     4. sub "$Chained/$PathPart" : Chained() PathPart() CaptureArgs() { }
-     5. sub "$Chained/$PathPart" : Chained() PathPart() Args() { }
+     1. sub root : Chained('/') PathPart('') CaptureArgs(0) { }
+
+     2. sub $PathPart : Chained('/root') Args { }
+     3. sub $PathPart : Chained('/root') Args($Int) { }
+     4. sub $PathPart : Chained('/root') CaptureArgs($Int) { }
+
+     5. sub $PathPart : Chained($Chained) Args { }
+     6. sub $PathPart : Chained($Chained) Args($Int) { }
+     7. sub $PathPart : Chained($Chained) CaptureArgs($Int) { }
+
+     8. Special case: See below
 
     @CaptureArgs is a list of names of the captured argumenst, which can be
     retrieved using captured().
 
-    $Args is a number of Args to capture at the endpoint of a chain. These
+    $Int is a number of Args to capture at the endpoint of a chain. These
     cannot be aquired using captured(), but is instead available in @_.
 
     %method_map can be used if you want to dispatch to a specific method,
@@ -84,6 +95,16 @@ EXPORTED FUNCTIONS
     Same as:
 
      sub $name :Private {};
+
+  forward
+     @Any = forward $action, @arguments;
+
+    See Catalyst::forward().
+
+  go
+     go $action, @arguments;
+
+    See Catalyst::forward().
 
   c
      $context_obj = c;
@@ -110,8 +131,8 @@ EXPORTED FUNCTIONS
 
     Retrieve data captured in a chain, using the names set with chain().
 
-     chain "/" => "user" => ["id"], sub {
-       res->body( captured("id") );
+     chain '/' => 'user' => ['id'], sub {
+       res->body( captured('id') );
      };
 
   stash

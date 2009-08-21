@@ -298,7 +298,7 @@ See L<Catalyst::forward()>.
 
  go $action, @arguments;
 
-See L<Catalyst::forward()>.
+See L<Catalyst::go()>.
 
 =cut
 
@@ -433,8 +433,7 @@ sub init_meta {
 =head1 BUGS
 
 Please report any bugs or feature requests to
-C<bug-catalystx-controller-sugar at rt.cpan.org>, or through the web
-interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=CatalystX-Controller-Sugar>.
+C<bug-catalystx-controller-sugar at rt.cpan.org>.
 I will be notified, and then you'll automatically be notified of progress on
 your bug as I make changes.
 

@@ -1,5 +1,21 @@
 Revision history for CatalystX-Controller-Sugar
 
-0.01 Thu,  6 Aug 2009 16:03:58 +0100
-   - Initial creation of project
+0.01     Fri Aug 21 22:00:19 2009 +0200
+       - add support for /absolute paths in chains
+       - add forward() and go()
+       - fix default/index page
+
+0.00_010 Sun Aug 16 15:48:48 2009 +0200
+       - change: chained() renamed to chain()
+
+0.00_003 Sat Aug 15 15:39:53 2009 +0200
+       - add c(), controller() and captured()
+       - add support for named captures
+
+0.00_002 Sat Aug 15 02:43:16 2009 +0200
+       - add chained() and private()
+       - add res() and req()
+
+0.00_001 Thu Aug  6 20:00:36 2009 +0200
+       - add stash() and session()
 
