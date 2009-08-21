@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use lib q(lib);
-use Test::More tests => 13;
+use Test::More tests => 14;
 
 BEGIN {
     use lib q(t/lib);
@@ -29,6 +29,11 @@ is(
     request('/test_private')->content,
     'private method is called',
     '/test_private',
+);
+is(
+    request('/out/of/ns')->content,
+    'outside namespace',
+    'outside namespace',
 );
 is(
     request("/get_stash")->content,

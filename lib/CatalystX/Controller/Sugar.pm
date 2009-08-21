@@ -91,8 +91,8 @@ Same as:
  1. sub root : Chained('/') PathPart('') CaptureArgs(0) { }
 
  2. sub $PathPart : Chained('/root') Args { }
- 3. sub $PathPart : Chained($Chained) Args($Int) { }
- 4. sub $PathPart : Chained($Chained) CaptureArgs($Int) { }
+ 3. sub $PathPart : Chained('/root') Args($Int) { }
+ 4. sub $PathPart : Chained('/root') CaptureArgs($Int) { }
 
  5. sub $PathPart : Chained($Chained) Args { }
  6. sub $PathPart : Chained($Chained) Args($Int) { }
@@ -129,7 +129,8 @@ sub chain {
     $attrs = _setup_chain_attrs($ns, @_);
 
     if($attrs->{'PathPart'}[0] ne $ns) {
-        $name = $attrs->{'PathPart'}[0];
+        $name =  $attrs->{'PathPart'}[0];
+        $name =~ s,^$ns/?,,;
     }
     elsif($c->dispatcher->get_action($ROOT, $ns)) {
         $name = "default";
@@ -171,7 +172,10 @@ sub _setup_chain_attrs {
 
         if(defined $_[-1]) {
             my $with = pop @_;
-            $attrs->{'Chained'} = [$ns ? "/$ns/$with" : "/$with"];
+            $attrs->{'Chained'} = [ $with =~ m,^/, ? $with
+                                  : $ns            ? "/$ns/$with"
+                                  :                  "/$with"
+                                  ];
         }
         else {
             $attrs->{'Chained'} = [$ns ? "/$ns/$ROOT" : "/$ROOT"];

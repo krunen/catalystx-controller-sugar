@@ -60,4 +60,9 @@ chain "http_method" => {
     get  => sub { res->print("HTTP GET") },
 };
 
+# 5. /out/of/ns/[*]
+chain "/" => "out/of/ns" => sub {
+    res->print("outside namespace");
+};
+
 1;
