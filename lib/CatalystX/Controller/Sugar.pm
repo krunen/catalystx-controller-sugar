@@ -59,9 +59,11 @@ use Catalyst::Controller ();
 use Catalyst::Utils;
 
 Moose::Exporter->setup_import_methods(
-    as_is => [qw/ c captured controller req res session stash /],
-    with_caller => [qw/ chain private /],
     also  => [qw/ Moose MooseX::MethodAttributes /],
+    with_caller => [qw/ chain private /],
+    as_is => [qw/
+        c captured controller forward go req res session stash
+    /],
 );
 
 our $VERSION = '0.01';
@@ -73,23 +75,35 @@ our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 =head2 chain
 
  1. chain sub { };
+
  2. chain $PathPart => sub { };
- 3. chain $Chained => $PathPart => sub { };
- 4. chain $Chained => $PathPart => \@CaptureArgs, sub { };
- 5. chain $Chained => $PathPart => $Args => sub { };
- 6. chain $Chained => $PathPart => ..., \%method_map;
+ 3. chain $PathPart => $Int, sub { };
+ 4. chain $PathPart => \@CaptureArgs, sub { };
+
+ 5. chain $Chained => $PathPart => sub { };
+ 6. chain $Chained => $PathPart => $Int, sub { };
+ 7. chain $Chained => $PathPart => \@CaptureArgs, sub { };
+
+ 8. chain ..., \%method_map;
 
 Same as:
 
- 1. sub _         : Chained('/') PathPart('') CaptureArgs { }
- 3. sub $PathPart : Chained() PathPart() Args { }
- 4. sub $PathPart : Chained() PathPart() CaptureArgs() { }
- 5. sub $PathPart : Chained() PathPart() Args() { }
+ 1. sub root : Chained('/') PathPart('') CaptureArgs(0) { }
+
+ 2. sub $PathPart : Chained('/root') Args { }
+ 3. sub $PathPart : Chained($Chained) Args($Int) { }
+ 4. sub $PathPart : Chained($Chained) CaptureArgs($Int) { }
+
+ 5. sub $PathPart : Chained($Chained) Args { }
+ 6. sub $PathPart : Chained($Chained) Args($Int) { }
+ 7. sub $PathPart : Chained($Chained) CaptureArgs($Int) { }
+
+ 8. Special case: See below
 
 C<@CaptureArgs> is a list of names of the captured argumenst, which
 can be retrieved using L<captured()>.
 
-C<$Args> is a number of Args to capture at the endpoint of a chain. These
+C<$Int> is a number of Args to capture at the endpoint of a chain. These
 cannot be aquired using L<captured()>, but is instead available in C<@_>.
 
 C<%method_map> can be used if you want to dispatch to a specific method,
@@ -118,13 +132,11 @@ sub chain {
         $name = $attrs->{'PathPart'}[0];
     }
     elsif($c->dispatcher->get_action($ROOT, $ns)) {
-        $name = "";
+        $name = "default";
     }
     else {
         $name = $ROOT;
     }
-
-    #use Data::Dumper; print Dumper $attrs;
 
     $c->dispatcher->register($c,
         $class->create_action(
@@ -271,6 +283,23 @@ sub _create_private_code {
         return $code->(@_);
     };
 }
+
+=head2 forward
+
+ @Any = forward $action, @arguments;
+
+See L<Catalyst::forward()>.
+
+=head2 go
+
+ go $action, @arguments;
+
+See L<Catalyst::forward()>.
+
+=cut
+
+sub forward { $CONTEXT->forward(@_) }
+sub go { $CONTEXT->go(@_) }
 
 =head2 c
 
