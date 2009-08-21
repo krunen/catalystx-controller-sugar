@@ -5,33 +5,48 @@ use CatalystX::Controller::Sugar;
 
 __PACKAGE__->config->{'namespace'} = q();
 
-# /
+# private /rp
+
+private rp => sub {
+    return "private method is called";
+};
+
+# private: /end
+# called after chain action has run
+private end => sub {
+    # ...
+};
+
+# NOTE: #. = refers to the number before syntax example for
+# chain() in lib/CatalystX/Controller/Sugar.pm
+
+# 1. chain: /
 chain sub {
     stash root_is_set => 'yes';
 };
 
-# /
+# 2. endpoint: /[*]
 chain "" => sub {
-    res->body("index page!");
+    res->body( @_ ? "default page (@_)" : "index page" );
 };
 
-# /global
-chain "global" => sub {
-    res->body('chain($pathpart => sub{})');
+# 2. endpoint: /test_private/[*]
+chain "test_private" => sub {
+    res->body( forward "/rp" );
 };
 
-# /test_body
+# 2. endpoint: /test_body/[*]
 chain test_root => sub {
     res->body( "exists=" .(stash('root_is_set') || 'no') );
 };
 
-# /get_stash
+# 2. endpoint: /get_stash/[*]
 chain get_stash => sub {
     stash foo => 123;
     res->body( stash 'foo' );
 };
 
-# /dump_stash
+# 2. endpoint: /dump_stash/[*]
 chain dump_stash => sub {
     stash foo => 42;
     stash bar => [1,2,3];
@@ -39,17 +54,10 @@ chain dump_stash => sub {
     res->body( Dumper c->stash );
 };
 
-# /http_method
+# 2. endpoint: /http_method/[*]
 chain "http_method" => {
     post => sub { res->print("HTTP POST") },
     get  => sub { res->print("HTTP GET") },
-};
-
-private default => sub {
-    res->body("default page");
-};
-
-private end => sub {
 };
 
 1;

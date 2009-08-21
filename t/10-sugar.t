@@ -3,16 +3,32 @@
 use strict;
 use warnings;
 use lib q(lib);
-use Test::More tests => 12;
+use Test::More tests => 13;
 
 BEGIN {
     use lib q(t/lib);
     use_ok("Catalyst::Test", "CataTest");
 }
 
-ok(
-    request("/")->is_success,
-    "index page received"
+is(
+    request("/foo-bar-default")->content,
+    "default page (foo-bar-default)",
+    "default page defined",
+);
+is(
+    request("/")->content,
+    "index page",
+    "index page defined",
+);
+is(
+    request('/test_root')->content,
+    'exists=yes',
+    'root chain is defined',
+);
+is(
+    request('/test_private')->content,
+    'private method is called',
+    '/test_private',
 );
 is(
     request("/get_stash")->content,
@@ -35,11 +51,6 @@ is(
     "/ch/bar",
 );
 is(
-    request("/http_method")->content,
-    "HTTP GET",
-    "/ch/http_method => get",
-);
-is(
     request("/sugar/user/doe/action/edit")->content,
     "user=doe => user=doe => [edit]",
     "/user/[name]/action/... named captures",
@@ -55,12 +66,7 @@ is(
     "c() returns context object",
 );
 is(
-    request('/global')->content,
-    'chain($pathpart => sub{})',
-    'chained $path_part => sub {}',
-);
-is(
-    request('/test_root')->content,
-    'exists=yes',
-    'root chain is defined',
+    request("/http_method")->content,
+    "HTTP GET",
+    "multi method => get",
 );
