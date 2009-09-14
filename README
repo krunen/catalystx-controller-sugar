@@ -2,7 +2,7 @@ NAME
     CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
 VERSION
-    0.01
+    0.02
 
 SYNOPSIS
      use CatalystX::Controller::Sugar;
@@ -25,7 +25,7 @@ SYNOPSIS
      };
 
      # /person/*/edit/*
-     chain '/person' => 'edit' => sub {
+     chain '/person:1' => 'edit' => sub {
        res->body( sprintf 'Person %s is unique: %s'
          captured('id'), stash('unique')
        );
@@ -104,7 +104,7 @@ EXPORTED FUNCTIONS
   go
      go $action, @arguments;
 
-    See Catalyst::forward().
+    See Catalyst::go().
 
   c
      $context_obj = c;
@@ -152,11 +152,9 @@ EXPORTED FUNCTIONS
 
 BUGS
     Please report any bugs or feature requests to
-    "bug-catalystx-controller-sugar at rt.cpan.org", or through the web
-    interface at
-    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=CatalystX-Controller-Sug
-    ar>. I will be notified, and then you'll automatically be notified of
-    progress on your bug as I make changes.
+    "bug-catalystx-controller-sugar at rt.cpan.org". I will be notified, and
+    then you'll automatically be notified of progress on your bug as I make
+    changes.
 
 COPYRIGHT & LICENSE
     Copyright 2007 Jan Henning Thorsen, all rights reserved.

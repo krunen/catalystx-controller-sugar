@@ -2,6 +2,8 @@ Revision history for CatalystX-Controller-Sugar
 
 0.02     Mon Sep 14 22:10:00 2009 +0200
        - fix root-action "inheritance"
+       - name of chains with captures is different
+         - "foo:$Int" instead of "foo", where $Int is the number of captures
 
 0.01     Fri Aug 21 22:00:19 2009 +0200
        - add support for /absolute paths in chains
