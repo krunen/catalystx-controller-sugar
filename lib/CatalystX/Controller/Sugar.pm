@@ -6,7 +6,7 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
 =head1 VERSION
 
-0.01
+0.02
 
 =head1 SYNOPSIS
 
@@ -66,8 +66,9 @@ Moose::Exporter->setup_import_methods(
     /],
 );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 our $ROOT = 'root';
+our $DEFAULT = 'default';
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
@@ -122,18 +123,22 @@ for a certain HTTP method: (The HTTP method is in lowercase)
 sub chain {
     my $class = shift;
     my $code  = pop;
-    my($c, $name, $ns, $attrs);
+    my($c, $name, $ns, $attrs, $path);
 
     $c     = Catalyst::Utils::class2appclass($class);
     $ns    = $class->action_namespace($c) || q();
     $attrs = _setup_chain_attrs($ns, @_);
 
-    if($attrs->{'PathPart'}[0] ne $ns) {
-        $name =  $attrs->{'PathPart'}[0];
-        $name =~ s,^$ns/?,,;
+    $path  =  $attrs->{'Chained'}[0];
+    $path  =~ s,^/,,;
+    $path  =~ s,$ROOT$,,;
+    $path .=  $attrs->{'PathPart'}[0];
+
+    if($path ne $ns) {
+        $name = (split "/", $attrs->{'PathPart'}[0])[-1];
     }
     elsif($c->dispatcher->get_action($ROOT, $ns)) {
-        $name = "default";
+        $name = $DEFAULT;
     }
     else {
         $name = $ROOT;
@@ -154,7 +159,7 @@ sub _setup_chain_attrs {
     my $ns    = shift;
     my $attrs = {};
 
-    if(@_) {
+    if(@_) { # chain ... => sub {};
         if(ref $_[-1] eq 'ARRAY') {
             $attrs->{'CaptureArgs'} = [int @{ $_[-1] }];
             $attrs->{'capture_names'} = pop @_;
@@ -181,9 +186,9 @@ sub _setup_chain_attrs {
             $attrs->{'Chained'} = [$ns ? "/$ns/$ROOT" : "/$ROOT"];
         }
     }
-    else { # chain(sub {});
+    else { # chain sub {};
         my($parent, $this) = $ns =~ m[ ^ (.*)/(\w+) $ ]x;
-        my $chained = $parent ? "/$parent"
+        my $chained = $parent ? "/$parent/$ROOT"
                     : $ns     ? "/$ROOT"
                     :           "/";
 

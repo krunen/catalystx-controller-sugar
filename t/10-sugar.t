@@ -2,13 +2,9 @@
 
 use strict;
 use warnings;
-use lib q(lib);
+use lib qw(lib t/lib);
+use Catalyst::Test 'CataTest';
 use Test::More tests => 14;
-
-BEGIN {
-    use lib q(t/lib);
-    use_ok("Catalyst::Test", "CataTest");
-}
 
 is(
     request("/foo-bar-default")->content,
@@ -74,4 +70,9 @@ is(
     request("/http_method")->content,
     "HTTP GET",
     "multi method => get",
+);
+is(
+    request("/sugar/foo/action_a")->content,
+    "action_a",
+    "parent controller inherit root action",
 );
