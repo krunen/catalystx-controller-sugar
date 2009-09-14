@@ -130,12 +130,11 @@ sub chain {
     $attrs = _setup_chain_attrs($ns, @_);
 
     $path  =  $attrs->{'Chained'}[0];
-    $path  =~ s,^/,,;
     $path  =~ s,$ROOT$,,;
     $path .=  $attrs->{'PathPart'}[0];
 
-    if($path ne $ns) {
-        $name = (split "/", $attrs->{'PathPart'}[0])[-1];
+    if($path ne "/$ns") {
+        $name = (split "/", $attrs->{'PathPart'}[0])[-1] || $DEFAULT;
     }
     elsif($c->dispatcher->get_action($ROOT, $ns)) {
         $name = $DEFAULT;
