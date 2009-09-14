@@ -40,7 +40,7 @@ chain "user" => ['name'], sub {
 };
 
 # 6. endpoint: sugar/user/[1]/action/[1]
-chain "user" => "action" => 1 => sub {
+chain "user:1" => "action" => 1 => sub {
     res->print(" => user=" .captured('name') ." => [@_]");
 };
 

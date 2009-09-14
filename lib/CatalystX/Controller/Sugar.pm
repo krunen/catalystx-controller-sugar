@@ -30,7 +30,7 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
  };
 
  # /person/*/edit/*
- chain '/person' => 'edit' => sub {
+ chain '/person:1' => 'edit' => sub {
    res->body( sprintf 'Person %s is unique: %s'
      captured('id'), stash('unique')
    );
@@ -61,9 +61,7 @@ use Catalyst::Utils;
 Moose::Exporter->setup_import_methods(
     also  => [qw/ Moose MooseX::MethodAttributes /],
     with_caller => [qw/ chain private /],
-    as_is => [qw/
-        c captured controller forward go req res session stash
-    /],
+    as_is => [qw/ c captured controller forward go req res session stash /],
 );
 
 our $VERSION = '0.02';
@@ -123,7 +121,7 @@ for a certain HTTP method: (The HTTP method is in lowercase)
 sub chain {
     my $class = shift;
     my $code  = pop;
-    my($c, $name, $ns, $attrs, $path);
+    my($c, $name, $ns, $attrs, $path, $action);
 
     $c     = Catalyst::Utils::class2appclass($class);
     $ns    = $class->action_namespace($c) || q();
@@ -134,7 +132,7 @@ sub chain {
     $path .=  $attrs->{'PathPart'}[0];
 
     if($path ne "/$ns") {
-        $name = (split "/", $attrs->{'PathPart'}[0])[-1] || $DEFAULT;
+        $name = (split "/", $attrs->{'PathPart'}[0])[-1];
     }
     elsif($c->dispatcher->get_action($ROOT, $ns)) {
         $name = $DEFAULT;
@@ -143,15 +141,28 @@ sub chain {
         $name = $ROOT;
     }
 
-    $c->dispatcher->register($c,
-        $class->create_action(
-            name => $name,
-            code => _create_chain_code($class, $code),
-            reverse => $ns ? "$ns/$name" : $name,
-            namespace => $ns,
-            attributes => $attrs,
-        )
-    );
+    # add captures to name
+    if(@{ $attrs->{'capture_names'} }) {
+        $name ||= q();
+        $name  .= ":" .int @{ $attrs->{'capture_names'} };
+    }
+
+    # set default name
+    # is this correct?
+    elsif(!$name) {
+        $name = $DEFAULT;
+    }
+
+    $action = $class->create_action(
+                  name => $name,
+                  code => _create_chain_code($class, $code),
+                  reverse => $ns ? "$ns/$name" : $name,
+                  namespace => $ns,
+                  class => $class,
+                  attributes => $attrs,
+              );
+
+    $c->dispatcher->register($c, $action);
 }
 
 sub _setup_chain_attrs {
@@ -207,13 +218,12 @@ sub _create_chain_code {
 
     if(ref $code eq 'HASH') {
         return sub {
-            my $controller  = shift;
-            my $method      = lc $_[0]->req->method;
+            local $SELF     = shift;
             local $CONTEXT  = shift;
-            local $SELF     = $class;
             local $RES      = $CONTEXT->res;
             local $REQ      = $CONTEXT->req;
             local %CAPTURED = _setup_captured();
+            my $method      = lc $REQ->method;
 
             if($code->{$method}) {
                 return $code->{$method}->(@_);
@@ -228,9 +238,8 @@ sub _create_chain_code {
     }
     else {
         return sub {
-            my $controller  = shift;
+            local $SELF     = shift;
             local $CONTEXT  = shift;
-            local $SELF     = $class;
             local $RES      = $CONTEXT->res;
             local $REQ      = $CONTEXT->req;
             local %CAPTURED = _setup_captured();
@@ -273,6 +282,7 @@ sub private {
             code => _create_private_code($class, $code),
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
+            class => $class,
             attributes => { Private => [] },
         )
     );
@@ -282,9 +292,8 @@ sub _create_private_code {
     my($class, $code) = @_;
 
     return sub {
-        my $controller = shift;
+        local $SELF    = shift;
         local $CONTEXT = shift;
-        local $SELF    = $class;
         local $RES     = $CONTEXT->res;
         local $REQ     = $CONTEXT->req;
 
@@ -431,7 +440,7 @@ sub init_meta {
 
     Moose->init_meta(%p);
 
-    $for->meta->superclasses('Catalyst::Controller');
+    $for->meta->superclasses(qw/Catalyst::Controller/);
 }
 
 =head1 BUGS
