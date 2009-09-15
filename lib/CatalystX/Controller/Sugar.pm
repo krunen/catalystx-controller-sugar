@@ -57,10 +57,11 @@ use Moose::Exporter;
 use MooseX::MethodAttributes ();
 use Catalyst::Controller ();
 use Catalyst::Utils;
+use Data::Dumper ();
 
 Moose::Exporter->setup_import_methods(
     also  => [qw/ Moose MooseX::MethodAttributes /],
-    with_caller => [qw/ chain private /],
+    with_caller => [qw/ chain log private /],
     as_is => [qw/ c captured controller forward go req res session stash /],
 );
 
@@ -425,6 +426,40 @@ sub _get_context_object {
     package DB;
     () = caller(2);
     return $DB::args[1];
+}
+
+=head2 log
+
+ log($level, $format, @args);
+
+Same as:
+
+ $c->log->$level(sprintf $format, @args);
+
+But undef values from C<@args> are turned into "__UNDEF__", and objects
+and/or datastructructures are flatten, using L<Data::Dumper>.
+
+=cut
+
+sub log {
+    my $class = shift;
+    my $level = shift;
+    my $format = shift;
+    my $c = $CONTEXT || _get_context_object();
+
+    return unless($c->log->${ \"is_$level" });
+    return $c->log->$level(sprintf $format, _flatten(@_));
+}
+
+sub _flatten {
+    local $Data::Dumper::Indent = 0;
+    local $Data::Dumper::Terse = 0;
+
+    map {
+          ref $_     ? Data::Dumper::Dumper($_)
+        : defined $_ ? $_
+        :              '__UNDEF__'
+    } @_;
 }
 
 =head2 init_meta
