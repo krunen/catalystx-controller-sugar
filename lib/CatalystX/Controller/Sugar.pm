@@ -61,7 +61,7 @@ use Data::Dumper ();
 
 Moose::Exporter->setup_import_methods(
     also  => [qw/ Moose MooseX::MethodAttributes /],
-    with_caller => [qw/ chain log private /],
+    with_caller => [qw/ chain report private /],
     as_is => [qw/ c captured controller forward go req res session stash /],
 );
 
@@ -411,7 +411,7 @@ sub session {
     }
     elsif(@_ % 2 == 0) {
         while(@_) {
-            my($key, $value) = splice @_, 2;
+            my($key, $value) = splice @_, 0, 2;
             $c->session->{$key} = $value;
         }
     }
@@ -428,9 +428,9 @@ sub _get_context_object {
     return $DB::args[1];
 }
 
-=head2 log
+=head2 report
 
- log($level, $format, @args);
+ report($level, $format, @args);
 
 Same as:
 
@@ -441,7 +441,7 @@ and/or datastructructures are flatten, using L<Data::Dumper>.
 
 =cut
 
-sub log {
+sub report {
     my $class = shift;
     my $level = shift;
     my $format = shift;
