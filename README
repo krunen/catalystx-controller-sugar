@@ -2,7 +2,7 @@ NAME
     CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
 VERSION
-    0.02
+    0.03
 
 SYNOPSIS
      use CatalystX::Controller::Sugar;
@@ -146,6 +146,16 @@ EXPORTED FUNCTIONS
      $value = session $key;
 
     Set/get data from the session.
+
+  report
+     report($level, $format, @args);
+
+    Same as:
+
+     $c->log->$level(sprintf $format, @args);
+
+    But undef values from @args are turned into "__UNDEF__", and objects
+    and/or datastructructures are flatten, using Data::Dumper.
 
   init_meta
     See Moose::Exporter.
