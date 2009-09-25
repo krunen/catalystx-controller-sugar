@@ -44,4 +44,10 @@ chain "user:1" => "action" => 1 => sub {
     res->print(" => user=" .captured('name') ." => [@_]");
 };
 
+CatalystX::Controller::Sugar->inject(
+    __PACKAGE__ ."::Injected",
+    [ chain => sub {} ],
+    [ chain => '' => sub { res->print("::Inject namespace got action") } ],
+);
+
 1;

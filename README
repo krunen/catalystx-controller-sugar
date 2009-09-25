@@ -2,7 +2,7 @@ NAME
     CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
 VERSION
-    0.03
+    0.04
 
 SYNOPSIS
      use CatalystX::Controller::Sugar;
@@ -156,6 +156,20 @@ EXPORTED FUNCTIONS
 
     But undef values from @args are turned into "__UNDEF__", and objects
     and/or datastructructures are flatten, using Data::Dumper.
+
+  METHODS
+  inject
+     $class->inject(@actions);
+     $class->inject($namespace, @actions);
+
+    Will inject @actions into $namespace or caller's namespace by default.
+    @actions may contain:
+
+     (
+       [chain => @args],
+       [private => @args],
+       ...
+     )
 
   init_meta
     See Moose::Exporter.

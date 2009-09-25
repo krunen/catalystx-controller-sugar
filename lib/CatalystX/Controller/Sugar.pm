@@ -6,7 +6,7 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
 =head1 VERSION
 
-0.03
+0.04
 
 =head1 SYNOPSIS
 
@@ -54,18 +54,17 @@ and C<$self> is available by calling L<controller()>.
 
 use Moose;
 use Moose::Exporter;
-use MooseX::MethodAttributes ();
 use Catalyst::Controller ();
 use Catalyst::Utils;
 use Data::Dumper ();
 
 Moose::Exporter->setup_import_methods(
     also  => [qw/ Moose MooseX::MethodAttributes /],
-    with_caller => [qw/ chain report private /],
-    as_is => [qw/ c captured controller forward go req res session stash /],
+    with_caller => [qw/ chain private /],
+    as_is => [qw/ c captured controller forward go req report res session stash /],
 );
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 our $ROOT = 'root';
 our $DEFAULT = 'default';
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
@@ -460,6 +459,47 @@ sub _flatten {
         : defined $_ ? $_
         :              '__UNDEF__'
     } @_;
+}
+
+=head2 METHODS
+
+=head2 inject
+
+ $class->inject(@actions);
+ $class->inject($namespace, @actions);
+
+Will inject C<@actions> into C<$namespace> or caller's namespace by default.
+C<@actions> may contain:
+
+ (
+   [chain => @args],
+   [private => @args],
+   ...
+ )
+
+=cut
+
+sub inject {
+    my $class = shift;
+    my $namespace = ref $_[0] ? (caller(1))[0] : shift;
+    my $meta = $class->meta;
+
+    unless(Class::MOP::is_class_loaded($namespace)) {
+        Moose::Meta::Class->create($namespace,
+            superclasses => [qw/Catalyst::Controller/],
+        );
+    }
+
+    for my $action (@_) {
+        my $action_type = shift @$action;
+
+        if(my $method = $meta->get_method($action_type)) {
+            $namespace->${ \$method->body }(@$action);
+        }
+        else {
+            confess "'$action_type' is unknown to inject()";
+        }
+    }
 }
 
 =head2 init_meta
