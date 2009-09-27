@@ -182,7 +182,8 @@ sub _setup_chain_attrs {
             $attrs->{'PathPart'} = [pop @_];
         }
         else {
-            confess "Invalid arguments to chain()";
+            my $args = join ", ", @_;
+            confess "Invalid arguments: chain($args)";
         }
 
         if(defined $_[-1]) {
@@ -232,7 +233,7 @@ sub _create_chain_code {
                 return $code->{'default'}->(@_);
             }
             else {
-                confess "chain(..., { '$method' => undef })";
+                confess "Invalid arguments: chain(.., { '$method' => undef })";
             }
         };
     }
@@ -387,7 +388,8 @@ sub stash {
         }
     }
     else {
-        confess "stash(@_) is invalid";
+        my $args = join ", ", @_;
+        confess "Invalid arguments: stash($args)";
     }
 
     return $c->stash;
@@ -415,7 +417,8 @@ sub session {
         }
     }
     else {
-        confess "session(@_) is invalid";
+        my $args = join ", ", @_;
+        confess "Invalid arguments: session($args)";
     }
 
     return $c->session;
@@ -441,7 +444,6 @@ and/or datastructructures are flatten, using L<Data::Dumper>.
 =cut
 
 sub report {
-    my $class = shift;
     my $level = shift;
     my $format = shift;
     my $c = $CONTEXT || _get_context_object();
