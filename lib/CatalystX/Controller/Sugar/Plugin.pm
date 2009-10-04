@@ -46,7 +46,7 @@ action to be injected in some other controller.
 
 sub chain {
     my $class = shift;
-    my $action_list = $class->get_package_symbol('@ACTIONS');
+    my $action_list = $class->meta->get_package_symbol('@ACTIONS');
     push @$action_list, [chain => @_];
 }
 
@@ -59,7 +59,7 @@ action to be injected in some other controller.
 
 sub private {
     my $class = shift;
-    my $action_list = $class->get_package_symbol('@ACTIONS');
+    my $action_list = $class->meta->get_package_symbol('@ACTIONS');
     push @$action_list, [private => @_];
 }
 
@@ -79,7 +79,7 @@ sub inject {
     my $plugin = shift;
     my $target = shift || (caller(1))[0];
     my $sugar_meta = CatalystX::Controller::Sugar->meta;
-    my $action_list = $plugin->get_package_symbol('@ACTIONS');
+    my $action_list = $plugin->meta->get_package_symbol('@ACTIONS');
 
     unless(Class::MOP::is_class_loaded($target)) {
         _create_controller($target);
