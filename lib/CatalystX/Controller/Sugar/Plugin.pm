@@ -11,22 +11,27 @@ controller. This is done, by using the L</inject()> method.
 
 =head1 SYNOPSIS
 
- #=========================================
+ #= first... ==============================
  package My::Plugin;
  use CatalystX::Controller::Sugar::Plugin
  # Same as L<CatalystX::Controller::Sugar>.
  1;
 
- #=========================================
+ #= then... ===============================
  package MyApp::Controller::Foo;
- use Moose;
  My::Plugin->inject;
+ 1;
+
+ #= or... =================================
+ package MyApp;
+ My::Plugin->inject("MyApp::Controller::Foo");
  1;
 
 =cut
 
 use Moose;
 use Moose::Exporter;
+use CatalystX::Controller::Sugar ();
 use Catalyst::Utils;
 use Data::Dumper ();
 
@@ -117,14 +122,22 @@ See L<Moose::Exporter>.
 =cut
 
 sub init_meta {
-    my $c   = shift;
-    my %p   = @_;
-    my $for = $p{'for_class'};
+    shift; # our selves
+    my %params = @_;
+    my @export = qw/ c captured controller forward go req report res session stash /;
+    my $sugar_meta = CatalystX::Controller::Sugar->meta;
+    my $meta;
 
-    Moose->init_meta(%p);
-    CatalystX::Controller::Sugar->import;
+    Moose->init_meta(%params);
 
-    $for->meta->add_package_symbol('@ACTIONS', ());
+    $meta = $params{'for_class'}->meta;
+    $meta->add_package_symbol('@ACTIONS', []);
+
+    for my $symbol (map { "&$_" } @export) {
+        $meta->add_package_symbol(
+            $symbol => $sugar_meta->get_package_symbol($symbol)
+        );
+    }
 }
 
 =head1 BUGS
