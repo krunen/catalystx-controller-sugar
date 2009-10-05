@@ -7,11 +7,12 @@ chain plugin_endpoint => sub {
 };
 
 chain plugin_private_data => sub {
+    forward 'plugin_private';
     res->body( stash('plugin_private_data') );
 };
 
 private plugin_private => sub {
-    #stash plugin_private_data => '42 is the answer';
+    stash plugin_private_data => '42 is the answer';
 };
 
 1;
