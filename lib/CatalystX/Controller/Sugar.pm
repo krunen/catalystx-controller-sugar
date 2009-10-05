@@ -59,7 +59,6 @@ use Catalyst::Utils;
 use Data::Dumper ();
 
 Moose::Exporter->setup_import_methods(
-    also  => [qw/ Moose MooseX::MethodAttributes /],
     with_caller => [qw/ chain private /],
     as_is => [qw/ c captured controller forward go req report res session stash /],
 );
@@ -99,7 +98,7 @@ Same as:
 
  8. Special case: See below
 
-C<@CaptureArgs> is a list of names of the captured argumenst, which
+C<@CaptureArgs> is a list of names of the captured arguments, which
 can be retrieved using L<captured()>.
 
 C<$Int> is a number of Args to capture at the endpoint of a chain. These
@@ -464,45 +463,6 @@ sub _flatten {
 }
 
 =head2 METHODS
-
-=head2 inject
-
- $class->inject(@actions);
- $class->inject($namespace, @actions);
-
-Will inject C<@actions> into C<$namespace> or caller's namespace by default.
-C<@actions> may contain:
-
- (
-   [chain => @args],
-   [private => @args],
-   ...
- )
-
-=cut
-
-sub inject {
-    my $class = shift;
-    my $namespace = ref $_[0] ? (caller(1))[0] : shift;
-    my $meta = $class->meta;
-
-    unless(Class::MOP::is_class_loaded($namespace)) {
-        Moose::Meta::Class->create($namespace,
-            superclasses => [qw/Catalyst::Controller/],
-        );
-    }
-
-    for my $action (@_) {
-        my $action_type = shift @$action;
-
-        if(my $method = $meta->get_method($action_type)) {
-            $namespace->${ \$method->body }(@$action);
-        }
-        else {
-            confess "'$action_type' is unknown to inject()";
-        }
-    }
-}
 
 =head2 init_meta
 
