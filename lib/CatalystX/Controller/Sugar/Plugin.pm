@@ -88,7 +88,7 @@ in the component list.
 
 sub inject {
     my $plugin = shift;
-    my $target = shift || (caller(1))[0];
+    my $target = shift || (caller(0))[0];
     my $sugar_meta = CatalystX::Controller::Sugar->meta;
     my $plugin_meta = $plugin->meta;
     my $action_list = $plugin_meta->get_package_symbol('@ACTIONS');
