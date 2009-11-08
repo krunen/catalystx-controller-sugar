@@ -2,11 +2,18 @@ package CatalystX::Controller::Sugar;
 
 =head1 NAME
 
-CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
+CatalystX::Controller::Sugar - Sugar for Catalyst controller
 
 =head1 VERSION
 
 0.04
+
+=head1 DESCRIPTION
+
+This module is written to simplify the way controllers are written. I
+personally think that shifting off C<$c> and C<$self> in every action is
+tidious. I also wanted a simpler API to created chained actions, since I
+rarely use any other actions - except of L</private>.
 
 =head1 SYNOPSIS
 
@@ -14,29 +21,30 @@ CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
 
  __PACKAGE__->config->{'namespace'} = q();
 
+ # Private action
  private foo => sub {
    res->body('Hey!');
  };
 
- # /
+ # Chain /
  chain sub {
     # root chain
  };
 
- # /person/*
+ # Chain /person/[id]/
  chain '/' => 'person' => ['id'], sub {
    stash unique => rand;
    res->print( captured('id') );
  };
 
- # /person/*/edit/*
+ # Endpoint /person/*/edit/*
  chain '/person:1' => 'edit' => sub {
    res->body( sprintf 'Person %s is unique: %s'
      captured('id'), stash('unique')
    );
  };
 
- # /multi
+ # Endpoint /multi
  chain '/multi' => {
    post => sub { ... },
    get => sub { ... },
@@ -367,10 +375,12 @@ sub captured {
 
 =head2 stash
 
- $hash_ref = stash $key => $value, ...;
  $value = stash $key;
+ $hash_ref = stash $key => $value, ...;
+ $hash_ref = stash;
 
-Set/get data from the stash.
+Set/get data from the stash. The C<$hash_ref> is a reference to what the
+stash is holding.
 
 =cut
 
@@ -386,20 +396,21 @@ sub stash {
             $c->stash->{$key} = $value;
         }
     }
-    else {
-        my $args = join ", ", @_;
-        confess "Invalid arguments: stash($args)";
-    }
 
     return $c->stash;
 }
 
 =head2 session
 
- $hash_ref == session $key => $value;
  $value = session $key;
+ $hash_ref == session $key => $value;
+ $hash_ref == session;
 
-Set/get data from the session.
+Set/get data from the session. The C<$hash_ref> is a reference to what the
+session is holding.
+
+This function will only work if a session module/plugin is loaded into
+L<Catalyst>.
 
 =cut
 
@@ -431,9 +442,9 @@ sub _get_context_object {
 
 =head2 report
 
- report($level, $format, @args);
+ report $level, $format, @args;
 
-Same as:
+Almost the same as:
 
  $c->log->$level(sprintf $format, @args);
 
@@ -446,9 +457,15 @@ sub report {
     my $level = shift;
     my $format = shift;
     my $c = $CONTEXT || _get_context_object();
+    my $log = $c->log;
 
-    return unless($c->log->${ \"is_$level" });
-    return $c->log->$level(sprintf $format, _flatten(@_));
+    if(my $check = $log->can("is_$level")) {
+        if(!$log->$check) {
+            return;
+        }
+    }
+    
+    return $log->$level(sprintf $format, _flatten(@_));
 }
 
 sub _flatten {

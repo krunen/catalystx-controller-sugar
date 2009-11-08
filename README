@@ -72,7 +72,7 @@ EXPORTED FUNCTIONS
 
      8. Special case: See below
 
-    @CaptureArgs is a list of names of the captured argumenst, which can be
+    @CaptureArgs is a list of names of the captured arguments, which can be
     retrieved using captured().
 
     $Int is a number of Args to capture at the endpoint of a chain. These
@@ -158,19 +158,6 @@ EXPORTED FUNCTIONS
     and/or datastructructures are flatten, using Data::Dumper.
 
   METHODS
-  inject
-     $class->inject(@actions);
-     $class->inject($namespace, @actions);
-
-    Will inject @actions into $namespace or caller's namespace by default.
-    @actions may contain:
-
-     (
-       [chain => @args],
-       [private => @args],
-       ...
-     )
-
   init_meta
     See Moose::Exporter.
 

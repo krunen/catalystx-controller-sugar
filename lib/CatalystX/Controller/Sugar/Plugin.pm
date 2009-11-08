@@ -2,7 +2,7 @@ package CatalystX::Controller::Sugar::Plugin;
 
 =head1 NAME
 
-CatalystX::Controller::Sugar::Plugin - Prepare plugin, not controller
+CatalystX::Controller::Sugar::Plugin - Prepare a plugin, not a real controller
 
 =head1 DESCRIPTION
 
@@ -13,7 +13,7 @@ controller. This is done, by using the L</inject()> method.
 
  #= first... ==============================
  package My::Plugin;
- use CatalystX::Controller::Sugar::Plugin
+ use CatalystX::Controller::Sugar::Plugin;
  # Same as L<CatalystX::Controller::Sugar>.
  1;
 
@@ -34,6 +34,8 @@ use Moose::Exporter;
 use CatalystX::Controller::Sugar ();
 use Catalyst::Utils;
 use Data::Dumper ();
+
+our $SILENT = 0;
 
 Moose::Exporter->setup_import_methods(
     with_caller => [qw/ chain private /],
@@ -72,11 +74,15 @@ sub private {
 
 =head2 inject
 
- $class->inject;
- $class->inject($target);
+ $controller_obj = $class->inject;
+ $controller_obj = $class->inject($target);
 
 Will inject the prepared actions into C<$target> namespace or caller's
-namespace by default.
+namespace by default. This will also inject attributes from the plugin
+package, but will not override any existing attributes with the same name.
+
+Also the C<$target> controller will be spawned, unless it already exists
+in the component list.
 
 =cut
 
@@ -84,12 +90,24 @@ sub inject {
     my $plugin = shift;
     my $target = shift || (caller(1))[0];
     my $sugar_meta = CatalystX::Controller::Sugar->meta;
-    my $action_list = $plugin->meta->get_package_symbol('@ACTIONS');
+    my $plugin_meta = $plugin->meta;
+    my $action_list = $plugin_meta->get_package_symbol('@ACTIONS');
+    my $app = Catalyst::Utils::class2appclass($target);
+    my $target_meta;
 
-    unless(Class::MOP::is_class_loaded($target)) {
-        _create_controller($target);
+    # inject new controller
+    if(!blessed $target and !exists $app->components->{$target}) {
+        eval qq[
+            package $target;
+            use CatalystX::Controller::Sugar;
+            1;
+        ];
+        $app->components->{$target} = $app->setup_component($target);
     }
 
+    $target_meta = $target->meta;
+
+    # inject actions to controller
     for my $action (@$action_list) {
         my($type, @args) = @$action;
 
@@ -100,19 +118,18 @@ sub inject {
             confess "'$type' is unknown to inject()";
         }
     }
-}
 
-sub _create_controller {
-    my $controller = shift;
-    my $app = Catalyst::Utils::class2appclass($controller);
+    # inject moose attributes
+    for my $attr ($plugin_meta->get_attribute_list) {
+        if($target_meta->get_attribute($attr)) {
+            warn "Plugin attribute will not be installed, since an attribute is already defined" unless($SILENT);
+        }
+        else {
+            $target_meta->add_attribute( $plugin_meta->get_attribute($attr) );
+        }
+    }
 
-    eval qq[
-        package $controller;
-        use CatalystX::Controller::Sugar;
-        1;
-    ];
-
-    $app->setup_component($controller);
+    return blessed $target ? $target : $app->components->{$target};
 }
 
 =head2 init_meta
@@ -128,11 +145,16 @@ sub init_meta {
     my $sugar_meta = CatalystX::Controller::Sugar->meta;
     my $meta;
 
+    # moosify class: add meta class
     Moose->init_meta(%params);
 
     $meta = $params{'for_class'}->meta;
+
+    # add a variable where the plugin actions should be stored
     $meta->add_package_symbol('@ACTIONS', []);
 
+    # add functions from CatalystX::Controller::Sugar to make the
+    # plugin module compile
     for my $symbol (map { "&$_" } @export) {
         $meta->add_package_symbol(
             $symbol => $sugar_meta->get_package_symbol($symbol)
