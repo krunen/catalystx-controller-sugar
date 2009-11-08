@@ -1,9 +1,17 @@
 package CataTest::FooPlugin;
 
+use Moose;
 use CatalystX::Controller::Sugar::Plugin;
 
+has body_text => (
+    is => 'ro',
+    isa => 'Str',
+    lazy => 1,
+    default => 'plugin endpoint body',
+);
+
 chain plugin_endpoint => sub {
-    res->body('plugin endpoint body');
+    res->body( controller->body_text );
 };
 
 chain plugin_private_data => sub {

@@ -27,6 +27,8 @@ controller. This is done, by using the L</inject()> method.
  My::Plugin->inject("MyApp::Controller::Foo");
  1;
 
+See L<EXTENDED SYNOPSIS> for how to include attributes.
+
 =cut
 
 use Moose;
@@ -161,6 +163,31 @@ sub init_meta {
         );
     }
 }
+
+=head1 EXTENDED SYNOPSIS
+
+ package My::Plugin;
+ use Moose; # IMPORT "has"
+ use CatalystX::Controller::Sugar::Plugin;
+
+ has foo => (
+    is => 'rw',
+    isa => 'Str',
+    lazy => 1, # <-- IMPORTANT
+    default => 'foo value'
+ );
+
+ chain '' => sub {
+ };
+
+ #...
+
+ 1;
+
+Attributes with default values has to be lazy. (Not quite sure why though...)
+All attributes defined in a plugin package, will also be injected into the
+caller controller. They are cloned and not shared among the controller, if
+it is injected into multiple controllers.
 
 =head1 BUGS
 
