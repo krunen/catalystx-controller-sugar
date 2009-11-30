@@ -67,7 +67,7 @@ use Catalyst::Utils;
 use Data::Dumper ();
 
 Moose::Exporter->setup_import_methods(
-    with_caller => [qw/ chain private /],
+    with_meta => [qw/ chain private /],
     as_is => [qw/ c captured controller forward go req report res session stash /],
 );
 
@@ -126,7 +126,7 @@ for a certain HTTP method: (The HTTP method is in lowercase)
 =cut
 
 sub chain {
-    my $class = shift;
+    my $class = shift->name;
     my $code = pop;
     my($c, $name, $ns, $attrs, $path, $action);
 
@@ -278,7 +278,8 @@ Same as:
 =cut
 
 sub private {
-    my($class, $name, $code) = @_;
+    my($meta, $name, $code) = @_;
+    my $class = $meta->name;
     my($c, $ns);
  
     $c  = Catalyst::Utils::class2appclass($class);

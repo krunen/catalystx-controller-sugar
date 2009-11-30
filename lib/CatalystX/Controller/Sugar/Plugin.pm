@@ -114,7 +114,7 @@ sub inject {
         my($type, @args) = @$action;
 
         if(my $method = $sugar_meta->get_method($type)) {
-            $target->${ \$method->body }(@args);
+            $target_meta->${ \$method->body }(@args);
         }
         else {
             confess "'$type' is unknown to inject()";
