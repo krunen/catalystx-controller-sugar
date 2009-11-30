@@ -40,7 +40,7 @@ use Data::Dumper ();
 our $SILENT = 0;
 
 Moose::Exporter->setup_import_methods(
-    with_caller => [qw/ chain private /],
+    with_meta => [qw/ chain private /],
     as_is => [qw/ inject /],
 );
 
@@ -54,8 +54,8 @@ action to be injected in some other controller.
 =cut
 
 sub chain {
-    my $class = shift;
-    my $action_list = $class->meta->get_package_symbol('@ACTIONS');
+    my $meta = shift;
+    my $action_list = $meta->get_package_symbol('@ACTIONS');
     push @$action_list, [chain => @_];
 }
 
@@ -67,8 +67,8 @@ action to be injected in some other controller.
 =cut
 
 sub private {
-    my $class = shift;
-    my $action_list = $class->meta->get_package_symbol('@ACTIONS');
+    my $meta = shift;
+    my $action_list = $meta->get_package_symbol('@ACTIONS');
     push @$action_list, [private => @_];
 }
 

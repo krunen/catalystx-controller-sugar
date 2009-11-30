@@ -127,7 +127,7 @@ for a certain HTTP method: (The HTTP method is in lowercase)
 
 sub chain {
     my $class = shift;
-    my $code  = pop;
+    my $code = pop;
     my($c, $name, $ns, $attrs, $path, $action);
 
     $c     = Catalyst::Utils::class2appclass($class);
