@@ -38,6 +38,7 @@ use Catalyst::Utils;
 use Data::Dumper ();
 
 our $SILENT = 0;
+our $SYMBOL = '@ACTIONS';
 
 Moose::Exporter->setup_import_methods(
     with_meta => [qw/ chain private /],
@@ -55,7 +56,7 @@ action to be injected in some other controller.
 
 sub chain {
     my $meta = shift;
-    my $action_list = $meta->get_package_symbol('@ACTIONS');
+    my $action_list = $meta->get_package_symbol($SYMBOL);
     push @$action_list, [chain => @_];
 }
 
@@ -68,7 +69,7 @@ action to be injected in some other controller.
 
 sub private {
     my $meta = shift;
-    my $action_list = $meta->get_package_symbol('@ACTIONS');
+    my $action_list = $meta->get_package_symbol($SYMBOL);
     push @$action_list, [private => @_];
 }
 
@@ -91,11 +92,33 @@ in the component list.
 sub inject {
     my $plugin = shift;
     my $target = shift || (caller(0))[0];
-    my $sugar_meta = CatalystX::Controller::Sugar->meta;
     my $plugin_meta = $plugin->meta;
-    my $action_list = $plugin_meta->get_package_symbol('@ACTIONS');
+    my $target_meta = $target->meta;
+
+    if($target_meta and $target_meta->get_package_symbol($SYMBOL)) {
+        return _inject_to_plugin($plugin_meta, $target_meta);
+    }
+    else {
+        return _inject_to_controller($plugin_meta, $target_meta, $target);
+    }
+}
+
+sub _inject_to_plugin {
+    my $plugin_list = $_[0]->get_package_symbol($SYMBOL);
+    my $target_list = $_[1]->get_package_symbol($SYMBOL);
+
+    _inject_attributes(@_);
+
+    push @$target_list, @$plugin_list;
+
+    return 1;
+}
+
+sub _inject_to_controller {
+    my($plugin_meta, $target_meta, $target) = @_;
+    my $sugar_meta = CatalystX::Controller::Sugar->meta;
+    my $action_list = $plugin_meta->get_package_symbol($SYMBOL);
     my $app = Catalyst::Utils::class2appclass($target);
-    my $target_meta;
 
     # inject new controller
     if(!blessed $target and !exists $app->components->{$target}) {
@@ -122,6 +145,14 @@ sub inject {
     }
 
     # inject moose attributes
+    _inject_attributes($plugin_meta, $target_meta);
+
+    return blessed $target ? $target : $app->components->{$target};
+}
+
+sub _inject_attributes {
+    my($plugin_meta, $target_meta) = @_;
+
     for my $attr ($plugin_meta->get_attribute_list) {
         if($target_meta->get_attribute($attr)) {
             warn "Plugin attribute will not be installed, since an attribute is already defined" unless($SILENT);
@@ -130,8 +161,6 @@ sub inject {
             $target_meta->add_attribute( $plugin_meta->get_attribute($attr) );
         }
     }
-
-    return blessed $target ? $target : $app->components->{$target};
 }
 
 =head2 init_meta
@@ -153,7 +182,7 @@ sub init_meta {
     $meta = $params{'for_class'}->meta;
 
     # add a variable where the plugin actions should be stored
-    $meta->add_package_symbol('@ACTIONS', []);
+    $meta->add_package_symbol($SYMBOL, []);
 
     # add functions from CatalystX::Controller::Sugar to make the
     # plugin module compile
