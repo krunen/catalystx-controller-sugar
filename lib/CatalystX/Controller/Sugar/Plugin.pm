@@ -93,19 +93,25 @@ sub inject {
     my $plugin = shift;
     my $target = shift || (caller(0))[0];
     my $plugin_meta = $plugin->meta;
-    my $target_meta = $target->meta;
+    my $is_plugin;
+    
+    if(Class::MOP::is_class_loaded($target)) {
+        if($target->meta->get_package_symbol($SYMBOL)) {
+            $is_plugin = 1;
+        }
+    }
 
-    if($target_meta and $target_meta->get_package_symbol($SYMBOL)) {
-        return _inject_to_plugin($plugin_meta, $target_meta);
+    if($is_plugin) {
+        return _inject_to_plugin($plugin_meta, $target);
     }
     else {
-        return _inject_to_controller($plugin_meta, $target_meta, $target);
+        return _inject_to_controller($plugin_meta, $target);
     }
 }
 
 sub _inject_to_plugin {
     my $plugin_list = $_[0]->get_package_symbol($SYMBOL);
-    my $target_list = $_[1]->get_package_symbol($SYMBOL);
+    my $target_list = $_[1]->meta->get_package_symbol($SYMBOL);
 
     _inject_attributes(@_);
 
@@ -115,10 +121,11 @@ sub _inject_to_plugin {
 }
 
 sub _inject_to_controller {
-    my($plugin_meta, $target_meta, $target) = @_;
+    my($plugin_meta, $target) = @_;
     my $sugar_meta = CatalystX::Controller::Sugar->meta;
     my $action_list = $plugin_meta->get_package_symbol($SYMBOL);
     my $app = Catalyst::Utils::class2appclass($target);
+    my $target_meta;
 
     # inject new controller
     if(!blessed $target and !exists $app->components->{$target}) {
