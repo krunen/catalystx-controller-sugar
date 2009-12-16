@@ -1,5 +1,9 @@
 Revision history for CatalystX-Controller-Sugar
 
+0.05     Wed Dec 16 22:45:00 2009 +0100
+       - add CatalystX::Controller::Sugar::Plugin can be injected into
+         non-existent controller
+
 0.04     Mon Okt  5 21:01:08 2009 +0200
        - add CatalystX::Controller::Sugar::Plugin
        - fix report check if $level is valid

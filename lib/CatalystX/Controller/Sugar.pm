@@ -6,7 +6,7 @@ CatalystX::Controller::Sugar - Sugar for Catalyst controller
 
 =head1 VERSION
 
-0.04
+0.05
 
 =head1 DESCRIPTION
 
@@ -71,7 +71,7 @@ Moose::Exporter->setup_import_methods(
     as_is => [qw/ c captured controller forward go req report res session stash /],
 );
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 our $ROOT = 'root';
 our $DEFAULT = 'default';
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
