@@ -126,8 +126,9 @@ for a certain HTTP method: (The HTTP method is in lowercase)
 =cut
 
 sub chain {
-    my $class = shift->name;
+    my $meta = shift;
     my $code = pop;
+    my $class = $meta->name;
     my($c, $name, $ns, $attrs, $path, $action);
 
     $c     = Catalyst::Utils::class2appclass($class);
@@ -162,7 +163,7 @@ sub chain {
 
     $action = $class->create_action(
                   name => $name,
-                  code => _create_chain_code($class, $code),
+                  code => _create_chain_code($meta, $name, $code),
                   reverse => $ns ? "$ns/$name" : $name,
                   namespace => $ns,
                   class => $class,
@@ -222,9 +223,13 @@ sub _setup_chain_attrs {
 }
 
 sub _create_chain_code {
-    my($class, $code) = @_;
+    my($meta, $name, $code) = @_;
 
     if(ref $code eq 'HASH') {
+        for my $method (keys %$code) {
+            $meta->add_method("$name\_$method" => $code->{$method});
+        }
+
         return sub {
             local $SELF     = shift;
             local $CONTEXT  = shift;
@@ -233,18 +238,20 @@ sub _create_chain_code {
             local %CAPTURED = _setup_captured();
             my $method      = lc $REQ->method;
 
-            if($code->{$method}) {
-                return $code->{$method}->(@_);
+            if(my $code = $meta->get_method("$name\_$method")) {
+                return $code->(@_);
             }
-            elsif($code->{'default'}) {
-                return $code->{'default'}->(@_);
+            elsif($code = $meta->get_method("$name\_default")) {
+                return $code->(@_);
             }
             else {
-                confess "Invalid arguments: chain(.., { '$method' => undef })";
+                confess "";
             }
         };
     }
     else {
+        $meta->add_method($name => $code);
+
         return sub {
             local $SELF     = shift;
             local $CONTEXT  = shift;
@@ -252,7 +259,7 @@ sub _create_chain_code {
             local $REQ      = $CONTEXT->req;
             local %CAPTURED = _setup_captured();
 
-            return $code->(@_);
+            return $meta->get_method($name)->body->(@_);
         };
     }
 }
@@ -288,7 +295,7 @@ sub private {
     $c->dispatcher->register($c,
         $class->create_action(
             name => $name,
-            code => _create_private_code($class, $code),
+            code => _create_private_code($meta, $name, $code),
             reverse => $ns ? "$ns/$name" : $name,
             namespace => $ns,
             class => $class,
@@ -298,7 +305,9 @@ sub private {
 }
 
 sub _create_private_code {
-    my($class, $code) = @_;
+    my($meta, $name, $code) = @_;
+
+    $meta->add_method($name => $code);
 
     return sub {
         local $SELF    = shift;
@@ -306,7 +315,7 @@ sub _create_private_code {
         local $RES     = $CONTEXT->res;
         local $REQ     = $CONTEXT->req;
 
-        return $code->(@_);
+        return $meta->get_method($name)->body->(@_);
     };
 }
 

@@ -1,5 +1,6 @@
 package CataTest::Controller::Sugar;
 
+use Moose;
 use CatalystX::Controller::Sugar;
 
 # NOTE: #. = refers to the number before syntax example for
@@ -42,6 +43,18 @@ chain "user" => ['name'], sub {
 # 6. endpoint: sugar/user/[1]/action/[1]
 chain "user:1" => "action" => 1 => sub {
     res->print(" => user=" .captured('name') ." => [@_]");
+};
+
+# 7. endpoint: sugar/modified
+chain "modified" => sub {
+    res->print("method");
+};
+
+around "modified" => sub {
+    res->header('Method-Modifier' => 'around');
+    res->print("around(");
+    shift->(@_);
+    res->print(")");
 };
 
 1;

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use lib qw(lib t/lib);
 use Catalyst::Test 'CataTest';
-use Test::More tests => 16;
+use Test::More tests => 18;
 
 is(
     request("/foo-bar-default")->content,
@@ -85,4 +85,13 @@ is(
     request("/sugar/foo/42/24/capture_end")->content,
     "captured c1, capture foo endpoint",
     "capture action set up for Foo",
+);
+ok(
+    request("/sugar/modified")->header('Method-Modifier'),
+    "/sugar/modified action header",
+);
+is(
+    request("/sugar/modified")->content,
+    "around(method)",
+    "/sugar/modified action body",
 );
