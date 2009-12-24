@@ -1,6 +1,5 @@
 package CataTest::Controller::Sugar;
 
-use Moose;
 use CatalystX::Controller::Sugar;
 
 # NOTE: #. = refers to the number before syntax example for

@@ -69,6 +69,7 @@ use Data::Dumper ();
 Moose::Exporter->setup_import_methods(
     with_meta => [qw/ chain private /],
     as_is => [qw/ c captured controller forward go req report res session stash /],
+    also => 'Moose',
 );
 
 our $VERSION = '0.05';

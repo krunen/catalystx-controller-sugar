@@ -43,6 +43,7 @@ our $SYMBOL = '@ACTIONS';
 Moose::Exporter->setup_import_methods(
     with_meta => [qw/ chain private /],
     as_is => [qw/ inject /],
+    also => 'Moose',
 );
 
 =head1 EXPORTED FUNCTIONS
