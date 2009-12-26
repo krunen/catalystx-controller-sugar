@@ -96,6 +96,6 @@ is(
     "/sugar/modified action body",
 );
 
-eval {CataTest::Controller::Sugar->chain() };
+eval { CataTest::Controller::Sugar->chain() };
 like($@, qr{Can't locate object method}, 'namespace is cleaned up');
 
