@@ -37,9 +37,6 @@ use CatalystX::Controller::Sugar ();
 use Catalyst::Utils;
 use Data::Dumper ();
 
-our $SILENT = 0;
-our $SYMBOL = '@ACTIONS';
-
 Moose::Exporter->setup_import_methods(
     with_meta => [qw/ chain private /],
     as_is => [qw/ inject /],
@@ -56,9 +53,7 @@ action to be injected in some other controller.
 =cut
 
 sub chain {
-    my $meta = shift;
-    my $action_list = $meta->get_package_symbol($SYMBOL);
-    push @$action_list, [chain => @_];
+    shift->add_chain_action(@_);
 }
 
 =head2 private
@@ -69,9 +64,7 @@ action to be injected in some other controller.
 =cut
 
 sub private {
-    my $meta = shift;
-    my $action_list = $meta->get_package_symbol($SYMBOL);
-    push @$action_list, [private => @_];
+    shift->add_private_action(@_);
 }
 
 =head2 METHODS
@@ -94,39 +87,20 @@ sub inject {
     my $plugin = shift;
     my $target = shift || (caller(0))[0];
     my $plugin_meta = $plugin->meta;
-    my $is_plugin;
+    my $initialized;
     
-    if(Class::MOP::is_class_loaded($target)) {
-        if($target->meta->get_package_symbol($SYMBOL)) {
-            $is_plugin = 1;
-        }
+    unless(Class::MOP::is_class_loaded($target)) {
+        _create_controller($target); # create controller in undef namespace
     }
 
-    if($is_plugin) {
-        return _inject_to_plugin($plugin_meta, $target);
-    }
-    else {
-        return _inject_to_controller($plugin_meta, $target);
-    }
+    _generic_inject($plugin_meta, $target);
+
+    return;
 }
 
-sub _inject_to_plugin {
-    my $plugin_list = $_[0]->get_package_symbol($SYMBOL);
-    my $target_list = $_[1]->meta->get_package_symbol($SYMBOL);
-
-    _inject_attributes(@_);
-
-    push @$target_list, @$plugin_list;
-
-    return 1;
-}
-
-sub _inject_to_controller {
-    my($plugin_meta, $target) = @_;
-    my $sugar_meta = CatalystX::Controller::Sugar->meta;
-    my $action_list = $plugin_meta->get_package_symbol($SYMBOL);
+sub _create_controller {
+    my $target = shift;
     my $app = Catalyst::Utils::class2appclass($target);
-    my $target_meta;
 
     # inject new controller
     if(!blessed $target and !exists $app->components->{$target}) {
@@ -138,37 +112,28 @@ sub _inject_to_controller {
         $app->components->{$target} = $app->setup_component($target);
     }
 
-    $target_meta = $target->meta;
-
-    # inject actions to controller
-    for my $action (@$action_list) {
-        my($type, @args) = @$action;
-
-        if(my $method = $sugar_meta->get_method($type)) {
-            $target_meta->${ \$method->body }(@args);
-        }
-        else {
-            confess "'$type' is unknown to inject()";
-        }
-    }
-
-    # inject moose attributes
-    _inject_attributes($plugin_meta, $target_meta);
-
     return blessed $target ? $target : $app->components->{$target};
 }
 
-sub _inject_attributes {
-    my($plugin_meta, $target_meta) = @_;
+sub _generic_inject {
+    my $plugin = $_[0];
+    my $target = $_[1]->meta;
 
-    for my $attr ($plugin_meta->get_attribute_list) {
-        if($target_meta->get_attribute($attr)) {
-            warn "Plugin attribute will not be installed, since an attribute is already defined" unless($SILENT);
-        }
-        else {
-            $target_meta->add_attribute( $plugin_meta->get_attribute($attr) );
-        }
+    for my $name ($plugin->get_attribute_list) {
+        $target->add_attribute($plugin->get_attribute($name));
     }
+    for my $name ($plugin->get_private_action_list) {
+        $target->add_private_action(
+            $name => @{ $plugin->get_private_action($name) }
+        );
+    }
+    for my $name ($plugin->get_chain_action_list) {
+        $target->add_chain_action(
+            $name => @{ $plugin->get_chain_action($name) }
+        );
+    }
+
+    return;
 }
 
 =head2 init_meta
@@ -178,27 +143,28 @@ See L<Moose::Exporter>.
 =cut
 
 sub init_meta {
-    shift; # our selves
-    my %params = @_;
-    my @export = qw/ c captured controller forward go req report res session stash /;
+    my $c = shift;
+    my %options = @_;
+    my $for = $options{'for_class'};
     my $sugar_meta = CatalystX::Controller::Sugar->meta;
-    my $meta;
+    my @export = qw/ c captured controller forward go req report res session stash /;
 
-    # moosify class: add meta class
-    Moose->init_meta(%params);
+    Moose->init_meta(%options);
 
-    $meta = $params{'for_class'}->meta;
-
-    # add a variable where the plugin actions should be stored
-    $meta->add_package_symbol($SYMBOL, []);
+    Moose::Util::MetaRole::apply_metaclass_roles(
+        for_class => $for,
+        metaclass_roles => [qw/CatalystX::Controller::Sugar::Meta::Role::Plugin/],
+    );
 
     # add functions from CatalystX::Controller::Sugar to make the
     # plugin module compile
     for my $symbol (map { "&$_" } @export) {
-        $meta->add_package_symbol(
+        $for->meta->add_package_symbol(
             $symbol => $sugar_meta->get_package_symbol($symbol)
         );
     }
+
+    return $for->meta;
 }
 
 =head1 EXTENDED SYNOPSIS

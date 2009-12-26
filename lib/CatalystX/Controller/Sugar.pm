@@ -73,8 +73,6 @@ Moose::Exporter->setup_import_methods(
 );
 
 our $VERSION = '0.05';
-our $ROOT = 'root';
-our $DEFAULT = 'default';
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
@@ -127,152 +125,7 @@ for a certain HTTP method: (The HTTP method is in lowercase)
 =cut
 
 sub chain {
-    my $meta = shift;
-    my $code = pop;
-    my $class = $meta->name;
-    my($c, $name, $ns, $attrs, $path, $action);
-
-    $c     = Catalyst::Utils::class2appclass($class);
-    $ns    = $class->action_namespace($c) || q();
-    $attrs = _setup_chain_attrs($ns, @_);
-
-    $path  =  $attrs->{'Chained'}[0];
-    $path  =~ s,$ROOT$,,;
-    $path .=  $attrs->{'PathPart'}[0];
-
-    if($path ne "/$ns") {
-        $name = (split "/", $attrs->{'PathPart'}[0])[-1];
-    }
-    elsif($c->dispatcher->get_action($ROOT, $ns)) {
-        $name = $DEFAULT;
-    }
-    else {
-        $name = $ROOT;
-    }
-
-    # add captures to name
-    if(@{ $attrs->{'capture_names'} }) {
-        $name ||= q();
-        $name  .= ":" .int @{ $attrs->{'capture_names'} };
-    }
-
-    # set default name
-    # is this correct?
-    elsif(!$name) {
-        $name = $DEFAULT;
-    }
-
-    $action = $class->create_action(
-                  name => $name,
-                  code => _create_chain_code($meta, $name, $code),
-                  reverse => $ns ? "$ns/$name" : $name,
-                  namespace => $ns,
-                  class => $class,
-                  attributes => $attrs,
-              );
-
-    $c->dispatcher->register($c, $action);
-}
-
-sub _setup_chain_attrs {
-    my $ns    = shift;
-    my $attrs = {};
-
-    if(@_) { # chain ... => sub {};
-        if(ref $_[-1] eq 'ARRAY') {
-            $attrs->{'CaptureArgs'} = [int @{ $_[-1] }];
-            $attrs->{'capture_names'} = pop @_;
-        }
-        elsif(defined $_[-1] and $_[-1] =~ /^(\d+)$/) {
-            $attrs->{'Args'} = [pop @_];
-        }
-
-        if(defined $_[-1]) {
-            $attrs->{'PathPart'} = [pop @_];
-        }
-        else {
-            my $args = join ", ", @_;
-            confess "Invalid arguments: chain($args)";
-        }
-
-        if(defined $_[-1]) {
-            my $with = pop @_;
-            $attrs->{'Chained'} = [ $with =~ m,^/, ? $with
-                                  : $ns            ? "/$ns/$with"
-                                  :                  "/$with"
-                                  ];
-        }
-        else {
-            $attrs->{'Chained'} = [$ns ? "/$ns/$ROOT" : "/$ROOT"];
-        }
-    }
-    else { # chain sub {};
-        my($parent, $this) = $ns =~ m[ ^ (.*)/(\w+) $ ]x;
-        my $chained = $parent ? "/$parent/$ROOT"
-                    : $ns     ? "/$ROOT"
-                    :           "/";
-
-        $attrs->{'Chained'}     = [$chained];
-        $attrs->{'PathPart'}    = [$this || $ns];
-        $attrs->{'CaptureArgs'} = [0];
-    }
-
-    $attrs->{'Args'} = [] unless($attrs->{'CaptureArgs'});
-    $attrs->{'capture_names'} ||= [];
-
-    return $attrs;
-}
-
-sub _create_chain_code {
-    my($meta, $name, $code) = @_;
-
-    if(ref $code eq 'HASH') {
-        for my $method (keys %$code) {
-            $meta->add_method("$name\_$method" => $code->{$method});
-        }
-
-        return sub {
-            local $SELF     = shift;
-            local $CONTEXT  = shift;
-            local $RES      = $CONTEXT->res;
-            local $REQ      = $CONTEXT->req;
-            local %CAPTURED = _setup_captured();
-            my $method      = lc $REQ->method;
-
-            if(my $code = $meta->get_method("$name\_$method")) {
-                return $code->(@_);
-            }
-            elsif($code = $meta->get_method("$name\_default")) {
-                return $code->(@_);
-            }
-            else {
-                confess "";
-            }
-        };
-    }
-    else {
-        $meta->add_method($name => $code);
-
-        return sub {
-            local $SELF     = shift;
-            local $CONTEXT  = shift;
-            local $RES      = $CONTEXT->res;
-            local $REQ      = $CONTEXT->req;
-            local %CAPTURED = _setup_captured();
-
-            return $meta->get_method($name)->body->(@_);
-        };
-    }
-}
-
-sub _setup_captured {
-    my @names;
-
-    for my $action (@{ $CONTEXT->action->chain }) {
-        push @names, @{ $action->attributes->{'capture_names'} };
-    }
-
-    return map { shift(@names), $_ } @{ $REQ->captures };
+    shift->add_chain_action(@_);
 }
 
 =head2 private
@@ -286,38 +139,7 @@ Same as:
 =cut
 
 sub private {
-    my($meta, $name, $code) = @_;
-    my $class = $meta->name;
-    my($c, $ns);
- 
-    $c  = Catalyst::Utils::class2appclass($class);
-    $ns = $class->action_namespace($c);
-
-    $c->dispatcher->register($c,
-        $class->create_action(
-            name => $name,
-            code => _create_private_code($meta, $name, $code),
-            reverse => $ns ? "$ns/$name" : $name,
-            namespace => $ns,
-            class => $class,
-            attributes => { Private => [] },
-        )
-    );
-}
-
-sub _create_private_code {
-    my($meta, $name, $code) = @_;
-
-    $meta->add_method($name => $code);
-
-    return sub {
-        local $SELF    = shift;
-        local $CONTEXT = shift;
-        local $RES     = $CONTEXT->res;
-        local $REQ     = $CONTEXT->req;
-
-        return $meta->get_method($name)->body->(@_);
-    };
+    shift->add_private_action(@_);
 }
 
 =head2 forward
@@ -491,7 +313,7 @@ sub _flatten {
     local $Data::Dumper::Indent = 0;
     local $Data::Dumper::Terse = 0;
 
-    map {
+    return map {
           ref $_     ? Data::Dumper::Dumper($_)
         : defined $_ ? $_
         :              '__UNDEF__'
@@ -507,13 +329,20 @@ See L<Moose::Exporter>.
 =cut
 
 sub init_meta {
-    my $c   = shift;
-    my %p   = @_;
-    my $for = $p{'for_class'};
+    my $c = shift;
+    my %options = @_;
+    my $for = $options{'for_class'};
 
-    Moose->init_meta(%p);
+    Moose->init_meta(%options);
 
-    $for->meta->superclasses(qw/Catalyst::Controller/);
+    $for->meta->superclasses(qw/Catalyst::Controller/),
+
+    Moose::Util::MetaRole::apply_metaclass_roles(
+        for_class => $for,
+        metaclass_roles => [qw/CatalystX::Controller::Sugar::Meta::Role/],
+    );
+
+    return $for->meta;
 }
 
 =head1 BUGS
