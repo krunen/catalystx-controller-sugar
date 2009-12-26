@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use lib qw(lib t/lib);
 use Catalyst::Test 'CataTest';
-use Test::More tests => 18;
+use Test::More tests => 19;
 
 is(
     request("/foo-bar-default")->content,
@@ -95,3 +95,7 @@ is(
     "around(method)",
     "/sugar/modified action body",
 );
+
+eval {CataTest::Controller::Sugar->chain() };
+like($@, qr{Can't locate object method}, 'namespace is cleaned up');
+

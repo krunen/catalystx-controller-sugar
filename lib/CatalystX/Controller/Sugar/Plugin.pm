@@ -33,13 +33,13 @@ See L<EXTENDED SYNOPSIS> for how to include attributes.
 
 use Moose;
 use Moose::Exporter;
+use namespace::autoclean ();
 use CatalystX::Controller::Sugar ();
 use Catalyst::Utils;
 use Data::Dumper ();
 
 Moose::Exporter->setup_import_methods(
     with_meta => [qw/ chain private /],
-    as_is => [qw/ inject /],
     also => 'Moose',
 );
 
@@ -163,6 +163,11 @@ sub init_meta {
             $symbol => $sugar_meta->get_package_symbol($symbol)
         );
     }
+
+    # must not be cleaned by namespace::autoclean
+    $for->meta->add_method(inject => \&inject);
+
+    namespace::autoclean->import(-cleanee => $for);
 
     return $for->meta;
 }

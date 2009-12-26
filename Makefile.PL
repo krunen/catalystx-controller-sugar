@@ -5,6 +5,7 @@ all_from q(lib/CatalystX/Controller/Sugar.pm);
 
 requires q(Catalyst) => 5.80;
 requires q(Data::Dumper) => 2.0;
+requires q(namespace::autoclean) => 0.09;
 
 test_requires q(Test::More) => 0;
 

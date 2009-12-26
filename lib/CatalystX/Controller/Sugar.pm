@@ -62,6 +62,7 @@ and C<$self> is available by calling L<controller()>.
 
 use Moose;
 use Moose::Exporter;
+use namespace::autoclean ();
 use Catalyst::Controller ();
 use Catalyst::Utils;
 use Data::Dumper ();
@@ -343,6 +344,8 @@ sub init_meta {
         for_class => $for,
         metaclass_roles => [qw/CatalystX::Controller::Sugar::Meta::Role/],
     );
+
+    namespace::autoclean->import(-cleanee => $for);
 
     return $for->meta;
 }
