@@ -8,10 +8,41 @@ CatalystX::Controller::Sugar::Meta::Role
 
 use Moose::Role;
 
-our $DEFAULT = 'default';
-our $ROOT = 'root';
-
 =head1 ATTRIBUTES
+
+=head2 chain_root_name
+
+ $str = $self->chain_root_name;
+
+Default value is "root". It is used for actions like this:
+
+ chain sub { ... };
+
+=cut
+
+has chain_root_name => (
+    is => 'rw',
+    isa => 'Str',
+    lazy => 1,
+    default => sub { $CatalystX::Controller::Sugar::ROOT }, # lazy
+);
+
+=head2 chain_default_name
+
+ $str = $self->chain_default_name;
+
+Default value is "default". It is used for actions like this:
+
+ chain '' => sub { ... };
+
+=cut
+
+has chain_default_name => (
+    is => 'rw',
+    isa => 'Str',
+    lazy => 1,
+    default => sub { $CatalystX::Controller::Sugar::DEFAULT }, # lazy
+);
 
 =head2 chain_action_map
 
@@ -72,24 +103,26 @@ sub add_chain_action {
     my $code = pop;
     my @args = @_;
     my $class = $meta->name;
+    my $root_name = $meta->chain_root_name;
+    my $default_name = $meta->chain_default_name;
     my($c, $name, $ns, $attrs, $path, $action);
 
     $c     = Catalyst::Utils::class2appclass($class);
     $ns    = $class->action_namespace($c) || q();
-    $attrs = _setup_chain_attrs($ns, @args);
+    $attrs = $meta->_setup_chain_attrs($ns, @args);
 
     $path  =  $attrs->{'Chained'}[0];
-    $path  =~ s,$ROOT$,,;
+    $path  =~ s,$root_name$,,;
     $path .=  $attrs->{'PathPart'}[0];
 
     if($path ne "/$ns") {
         $name = (split "/", $attrs->{'PathPart'}[0])[-1];
     }
-    elsif($c->dispatcher->get_action($ROOT, $ns)) {
-        $name = $DEFAULT;
+    elsif($c->dispatcher->get_action($root_name, $ns)) {
+        $name = $default_name;
     }
     else {
-        $name = $ROOT;
+        $name = $root_name;
     }
 
     # add captures to name
@@ -101,7 +134,7 @@ sub add_chain_action {
     # set default name
     # is this correct?
     elsif(!$name) {
-        $name = $DEFAULT;
+        $name = $default_name;
     }
 
     $action = $class->create_action(
@@ -118,8 +151,10 @@ sub add_chain_action {
 }
 
 sub _setup_chain_attrs {
-    my $ns    = shift;
+    my $meta = shift;
+    my $ns = shift;
     my $attrs = {};
+    my $root_name = $meta->chain_root_name;
 
     if(@_) { # chain ..., sub {};
         if(ref $_[-1] eq 'ARRAY') { # chain ..., [...], sub {}
@@ -146,13 +181,13 @@ sub _setup_chain_attrs {
                                   ];
         }
         else {
-            $attrs->{'Chained'} = [$ns ? "/$ns/$ROOT" : "/$ROOT"];
+            $attrs->{'Chained'} = [$ns ? "/$ns/$root_name" : "/$root_name"];
         }
     }
     else { # chain sub {};
         my($parent, $this) = $ns =~ m[ ^ (.*)/(\w+) $ ]x;
-        my $chained = $parent ? "/$parent/$ROOT"
-                    : $ns     ? "/$ROOT"
+        my $chained = $parent ? "/$parent/$root_name"
+                    : $ns     ? "/$root_name"
                     :           "/";
 
         $attrs->{'Chained'}     = [$chained];

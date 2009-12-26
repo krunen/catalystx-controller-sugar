@@ -73,6 +73,8 @@ Moose::Exporter->setup_import_methods(
 );
 
 our $VERSION = '0.05';
+our $DEFAULT = 'default';
+our $ROOT = 'root';
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
