@@ -74,8 +74,8 @@ Moose::Exporter->setup_import_methods(
 );
 
 our $VERSION = '0.05';
-our $DEFAULT = 'default';
-our $ROOT = 'root';
+our $DEFAULT = 'default'; # will be deprecated
+our $ROOT = 'root'; # will be deprecated
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS

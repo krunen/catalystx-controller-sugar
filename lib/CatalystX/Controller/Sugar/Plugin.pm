@@ -87,53 +87,46 @@ sub inject {
     my $plugin = shift;
     my $target = shift || (caller(0))[0];
     my $plugin_meta = $plugin->meta;
-    my $initialized;
+    my $target_meta;
     
     unless(Class::MOP::is_class_loaded($target)) {
         _create_controller($target); # create controller in undef namespace
     }
 
-    _generic_inject($plugin_meta, $target);
+    $target_meta = $target->meta;
+
+    for my $name ($plugin_meta->get_attribute_list) {
+        $target_meta->add_attribute($plugin_meta->get_attribute($name));
+    }
+    for my $name ($plugin_meta->get_private_action_list) {
+        $target_meta->add_private_action(
+            $name => @{ $plugin_meta->get_private_action($name) }
+        );
+    }
+    for my $name ($plugin_meta->get_chain_action_list) {
+        $target_meta->add_chain_action(
+            $name => @{ $plugin_meta->get_chain_action($name) }
+        );
+    }
 
     return;
 }
 
 sub _create_controller {
-    my $target = shift;
-    my $app = Catalyst::Utils::class2appclass($target);
+    my $controller = shift;
+    my $app = Catalyst::Utils::class2appclass($controller);
 
     # inject new controller
-    if(!blessed $target and !exists $app->components->{$target}) {
+    if(!blessed $controller and !exists $app->components->{$controller}) {
         eval qq[
-            package $target;
+            package $controller;
             use CatalystX::Controller::Sugar;
             1;
         ];
-        $app->components->{$target} = $app->setup_component($target);
+        $app->components->{$controller} = $app->setup_component($controller);
     }
 
-    return blessed $target ? $target : $app->components->{$target};
-}
-
-sub _generic_inject {
-    my $plugin = $_[0];
-    my $target = $_[1]->meta;
-
-    for my $name ($plugin->get_attribute_list) {
-        $target->add_attribute($plugin->get_attribute($name));
-    }
-    for my $name ($plugin->get_private_action_list) {
-        $target->add_private_action(
-            $name => @{ $plugin->get_private_action($name) }
-        );
-    }
-    for my $name ($plugin->get_chain_action_list) {
-        $target->add_chain_action(
-            $name => @{ $plugin->get_chain_action($name) }
-        );
-    }
-
-    return;
+    return $app->components->{$controller};
 }
 
 =head2 init_meta
