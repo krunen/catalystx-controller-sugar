@@ -125,6 +125,20 @@ for a certain HTTP method: (The HTTP method is in lowercase)
     #...
  );
 
+L</chain()> also creates a method. Reason for this is to support L<Moose>
+method modifiers.
+
+From the table above, these methods will be created:
+
+ 1. root
+ 2. $PathPart
+ 3.
+ 4.
+ 5.
+ 6.
+ 7.
+ 8. Same as above, but with the HTTP method as suffix: "foo_post".
+
 =cut
 
 sub chain {
@@ -338,7 +352,7 @@ sub init_meta {
 
     Moose->init_meta(%options);
 
-    $for->meta->superclasses(qw/Catalyst::Controller/),
+    $for->meta->superclasses(qw/Catalyst::Controller/);
 
     Moose::Util::MetaRole::apply_metaclass_roles(
         for_class => $for,
