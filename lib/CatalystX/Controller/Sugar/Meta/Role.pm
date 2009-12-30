@@ -139,7 +139,7 @@ sub add_chain_action {
 
     $action = $class->create_action(
                   name => $name,
-                  code => _create_chain_code($meta, $name, $code),
+                  code => $meta->_create_chain_code($name, $code),
                   reverse => $ns ? "$ns/$name" : $name,
                   namespace => $ns,
                   class => $class,
