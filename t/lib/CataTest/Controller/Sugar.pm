@@ -10,50 +10,50 @@ chain sub {
 };
 
 # 2. endpoint: /sugar/context/[*]
-chain "context" => sub {
+chain context => sub {
     res->body(ref c);
 };
 
 # 3. endpoint: /sugar/ctrl
-chain "ctrl" => 0 => sub {
-    res->body(controller);
+chain ctrl => 0 => sub {
+    res->body(ref controller);
 };
 
 # 4. chain: /sugar/ch
-chain "ch" => [],  sub {
-    res->print("==> /ch");
+chain ch => [],  sub {
+    res->print('==> /ch');
 };
 
 # 5. endpoint: /sugar/ch/foo/[*]
-chain "ch" => "foo" => sub {
-    res->print(" ==> foo/");
+chain ch => foo => sub {
+    res->print(' ==> foo/');
 };
 
 # 6. endpoint: /sugar/ch/bar
-chain "ch" => "bar" => 0 => sub {
-    res->print(" ==> bar/");
+chain ch => bar => 0 => sub {
+    res->print(' ==> bar/');
 };
 
 # 4. chain: /sugar/user/[1]
-chain "user" => ['name'], sub {
-    res->print("user=" .captured('name'));
+chain user => ['name'], sub {
+    res->print('user=' .captured('name'));
 };
 
 # 6. endpoint: sugar/user/[1]/action/[1]
-chain "user:1" => "action" => 1 => sub {
-    res->print(" => user=" .captured('name') ." => [@_]");
+chain 'user:1' => action => 1 => sub {
+    res->print(' => user=' .captured('name') ." => [@_]");
 };
 
 # 7. endpoint: sugar/modified
-chain "modified" => sub {
-    res->print("method");
+chain modified => sub {
+    res->print('method');
 };
 
-around "modified" => sub {
+around modified => sub {
     res->header('Method-Modifier' => 'around');
-    res->print("around(");
+    res->print('around(');
     shift->(@_);
-    res->print(")");
+    res->print(')');
 };
 
 1;
