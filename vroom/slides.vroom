@@ -1,0 +1,96 @@
+# See `perldoc Vroom::Vroom` for complete details.
+---- config
+title: CatalystX::Controller::Sugar
+indent: 4
+height: 50
+width: 120
+skip: 4
+
+---- center
+CatalystX::Controller::Sugar!
+
+by Jan Henning Thorsen
+
+(hint: press the spacebar)
+
+----
+== What and why Cx::C::Sugar?
+
+* Written to simplify the way chained actions are written
++* Includes sugar to declare private actions as well
++* Plus some more sugar
+
+(Hope there's no diabetics here...)
+
+----
+== Chained and private actions
+
+Left side: Standard Catalyst
+Right side: With Cx::C::Sugar
+
+use Moose                                              | use CatalystX::Controller::Sugar;
+BEGIN { extends 'Catalyst::Controller' }               |
+
++* Private action
+sub authenticate : Private {                           | private authenticate => sub {
+    my($self, $c, @args) = @_;                         |     my @args = @_;
+}                                                      | };
+
++* Chain anchor
+sub root : Chained('/') PathPart('') CaptureArgs(0) {  | chain sub {
+    my($self, $c) = @_;                                |     # no args
+}                                                      | };
+
++* Endpoint: http://foo.com/...
+sub default : Chained('/root') PathPart('') Args {     | chain '' => sub {
+    my($self, $c, @args) = @_;                         |     my @args = @_;
+}                                                      | };
+
++* Endpoint: http://foo.com/info/...
+sub info : Chained('/root') PathPart Args {            | chain info => sub {
+    my($self, $c, @args) = @_;                         |     my @args = @_;
+}                                                      | };
+
++* Endpoint: http://foo.com/search/*
+sub search : Chained('/root') PathPart Args(1) {       | chain search => 1 => sub {
+    my($self, $c, $query) = @_;                        |     my $query = shift;
+}                                                      | };
+----
+== More chained actions with captures
++* Chain: http://foo.com/user/*/...
+sub user : Chained('/') PathPart CaptureArgs(1) {  | chain user => [qw/id/], sub {
+    my($self, $c, $id) = @_;                       |     my $id = shift;
+}                                                  | };
++* Endpoint: http://foo.com/user/*/...
+sub edit : Chained('/user') PathPart Args {        | chain 'user:1' => edit => sub {
+    my($self, $c, @args) = @_;                     |     my @args = @_;
+                                                   |     my $id = captured('id');
+}                                                  | };
+----
+== What about $self and $c?
+
++* $self = controller()
++* $c    = c()
++* Example:
+
+sub foo : Private {                     | private foo => sub {
+    my($self, $c, @args) = @_;          |     my @args = @_;
+                                        |
+    if($self->config->{'something'}) {  |     if(controller->config->{'something'}) {
+        $c->res->body("42");            |         c->res->body("42");
+    }                                   |     }
+}                                       | };
+----
+== More sugar?
+
++* $c->forward('/some/action', ...)  | forward '/some/action', ...;
++* $c->go('/some/action', ...)       | go '/some/action', ...;
++* $c->req->$method                  | req->$method
++* $c->res->$method                  | res->$method
++* $c->stash->{'foo'} = 42           | stash foo => 42; or stash->{'foo'} = 42;
++* $c->session->{'foo'} = 42         | session foo => 42; or session->{'foo'} = 42;
++* $c->log->$level($msg);            | report $level => $format, @args;
+----
+== Alternatives?
+----
+== The end
