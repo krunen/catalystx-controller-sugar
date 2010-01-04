@@ -91,6 +91,16 @@ sub foo : Private {                     | private foo => sub {
 +* $c->session->{'foo'} = 42         | session foo => 42; or session->{'foo'} = 42;
 +* $c->log->$level($msg);            | report $level => $format, @args;
 ----
+== More?
+
+* CatalystX::Controller::Sugar::Plugin
+* CatalystX::Controller::Sugar::ActionPack
+ * CatalystX::Controller::Sugar::ActionPack
+
+----
 == Alternatives?
+
+* CatalystX::Declare
+* CatalystX
 ----
 == The end
