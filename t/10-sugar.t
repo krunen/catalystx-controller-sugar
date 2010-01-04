@@ -90,6 +90,11 @@ ok(
     request("/sugar/modified")->header('Method-Modifier'),
     "/sugar/modified action header",
 );
+
+warn join "\n", CataTest::Controller::Sugar->meta->get_method_list;
+warn join "\n", CataTest::Controller::Sugar->meta->get_chain_action_list;
+warn join "\n", CataTest::Controller::Sugar->meta->get_private_action_list;
+
 is(
     request("/sugar/modified")->content,
     "around(method)",
@@ -101,3 +106,4 @@ is(
     eval { CataTest::Controller::Sugar->chain() };
     like($@, qr{Can't locate object method}, 'namespace is cleaned up');
 }
+
