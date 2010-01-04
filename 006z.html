@@ -1,0 +1,78 @@
+<html>
+<head>
+<title>006z</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script>
+function navigate(e) {
+    var keynum = (window.event) // IE
+        ? e.keyCode
+        : e.which;
+    if (keynum == 8) {
+        window.location = "006g" + ".html";
+        return false;
+    }
+    if (keynum == 13 || keynum == 32) {
+        window.location = "007" + ".html";
+        return false;
+    }
+    if (keynum == 73 || keynum == 105) {
+        window.location = "index.html";
+        return false;
+    }
+    return true;
+}
+</script>
+</head>
+<body onkeypress="return navigate(event)">
+<pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                      More sugar?
+    
+    * $c-&gt;forward('/some/action', ...)  | forward '/some/action', ...;
+    * $c-&gt;go('/some/action', ...)       | go '/some/action', ...;
+    * $c-&gt;req-&gt;$method                  | req-&gt;$method
+    * $c-&gt;res-&gt;$method                  | res-&gt;$method
+    * $c-&gt;stash-&gt;{'foo'} = 42           | stash foo =&gt; 42; or stash-&gt;{'foo'} = 42;
+    * $c-&gt;session-&gt;{'foo'} = 42         | session foo =&gt; 42; or session-&gt;{'foo'} = 42;
+    * $c-&gt;log-&gt;$level($msg);            | report $level =&gt; $format, @args;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</body>

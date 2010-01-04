@@ -4,7 +4,7 @@ title: CatalystX::Controller::Sugar
 indent: 4
 height: 50
 width: 120
-skip: 4
+skip: 0
 
 ---- center
 CatalystX::Controller::Sugar!
