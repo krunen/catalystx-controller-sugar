@@ -37,27 +37,27 @@ function navigate(e) {
 
 
 
-
-
-
-
-
-
-
-
-
-                                                     Alternatives?
+                                                      Plugins ey?
     
-    * CatalystX::Declare
-    * CatalystX
-
-
-
-
-
-
-
-
+    #==============================================================
+    package App::FooPlugin;
+    use CatalystX::Controller::Sugar::Plugin;
+    
+    chain foo =&gt; sub {
+        # ...
+    };
+    
+    #==============================================================
+    package App;
+    use Moose;
+    extends 'Catalyst';
+    
+    after setup_components =&gt; sub {
+        App::FooPlugin-&gt;inject('App::Controller::Root');
+        App::FooPlugin-&gt;inject('App::Controller::NON_EXISTENT');
+    };
+    
+    __PACKAGE__-&gt;setup;
 
 
 

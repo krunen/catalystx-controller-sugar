@@ -93,14 +93,44 @@ sub foo : Private {                     | private foo => sub {
 ----
 == More?
 
-* CatalystX::Controller::Sugar::Plugin
+* CatalystX::Controller::Sugar
+ * CatalystX::Controller::Sugar::Plugin
 * CatalystX::Controller::Sugar::ActionPack
- * CatalystX::Controller::Sugar::ActionPack
+ * CatalystX::Controller::Sugar::ActionPack::Default
+ * CatalystX::Controller::Sugar::ActionPack::End
+ * CatalystX::Controller::Sugar::ActionPack::Error
+ * CatalystX::Controller::Sugar::ActionPack::Merge
+
+----
+== Plugins ey?
+
+#==============================================================
+package App::FooPlugin;
+use CatalystX::Controller::Sugar::Plugin;
+
+chain foo => sub {
+    # ...
+};
+
+#==============================================================
+package App;
+use Moose;
+extends 'Catalyst';
+
+after setup_components => sub {
+    App::FooPlugin->inject('App::Controller::Root');
+    App::FooPlugin->inject('App::Controller::NON_EXISTENT');
+};
+
+__PACKAGE__->setup;
 
 ----
 == Alternatives?
 
-* CatalystX::Declare
-* CatalystX
+* Sugar:
+ * CatalystX::Declare
+
+* Plugins
+ * Standard Catalyst with inheritance or roles
 ----
 == The end
