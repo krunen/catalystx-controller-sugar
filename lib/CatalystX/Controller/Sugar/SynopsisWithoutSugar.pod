@@ -1,6 +1,6 @@
 =head1 NAME
 
-CatalystX::Controller::SynopsisWithoutSugar
+CatalystX::Controller::Sugar::SynopsisWithoutSugar
 
 =head1 DESCRIPTION
 
@@ -54,9 +54,9 @@ in L<CatalystX::Controller::Sugar>.
   }
  
   # Endpoint /user/[id]/view/*
-  sub user :Chained("/user") PathPart('view') Args {
+  sub user_view :Chained("/user") PathPart('view') Args {
     my($self, $c) = @_;
-    $c->res->body(sprintf 'Person is called: %s', stash->{'user'}->name);
+    $c->res->body(sprintf 'Person is called: %s', $c->stash->{'user'}->name);
   }
  
 =cut
