@@ -1,43 +1,55 @@
 NAME
-    CatalystX::Controller::Sugar - Extra sugar for Catalyst controller
+    CatalystX::Controller::Sugar - Sugar for Catalyst controller
 
 VERSION
-    0.04
+    0.05
+
+DESCRIPTION
+    This module is written to simplify the way controllers are written. I
+    personally think that shifting off $c and $self in every action is
+    tidious. I also wanted a simpler API to created chained actions, since I
+    rarely use any other actions - except of "private".
 
 SYNOPSIS
-     use CatalystX::Controller::Sugar;
+      package MyApp::Controller::Root;
+      use CatalystX::Controller::Sugar;
+     
+  __PACKAGE__->config->{'namespace'} = q();
+     
+  # Private action
+      private authenticate => sub {
+        c->user_exists and return 1;
+      };
+     
+  # Chain /
+      chain sub {
+        report debug => 'Someone tries to access %s', c->action;
+      };
 
-     __PACKAGE__->config->{'namespace'} = q();
+      # Endpioint /*
+      chain '' => sub {
+        res->body('not found');
+      };
 
-     private foo => sub {
-       res->body('Hey!');
-     };
-
-     # /
-     chain sub {
-        # root chain
-     };
-
-     # /person/*
-     chain '/' => 'person' => ['id'], sub {
-       stash unique => rand;
-       res->print( captured('id') );
-     };
-
-     # /person/*/edit/*
-     chain '/person:1' => 'edit' => sub {
-       res->body( sprintf 'Person %s is unique: %s'
-         captured('id'), stash('unique')
-       );
-     };
-
-     # /multi
-     chain '/multi' => {
-       post => sub { ... },
-       get => sub { ... },
-       delete => sub { ... },
-       default => sub { ... },
-     };
+      # Endpoint /login
+      chain login => {
+        get => sub {}, # show template
+        post => sub {
+          forward 'authenticate' and go '';
+        },
+      };
+     
+  # Chain /user/[id]/*
+      chain user => ['id'], sub {
+        stash user => c->model('DB::User')->find($_[0]);
+      };
+     
+  # Endpoint /user/[id]/view/*
+      chain 'user:1' => view => sub {
+        res->body(
+          sprintf 'Person is called: %s', stash->{'user'}->name
+        );
+      };
 
 NOTE
     $self and $c is not part of the argument list inside a chain() or
@@ -94,37 +106,41 @@ EXPORTED FUNCTIONS
 
     Same as:
 
-     sub $name :Private {};
+     sub $name :Private {}
 
   forward
-     @Any = forward $action, @arguments;
+     @Any = forward $action;
+     @Any = forward $action, \@arguments;
 
     See Catalyst::forward().
 
   go
-     go $action, @arguments;
+     go $action;
+     go $action, \@arguments;
 
     See Catalyst::go().
 
   c
      $context_obj = c;
 
-    Returns the context object for this request.
+    Returns the context object for this request, an instance of Catalyst.
 
   controller
      $controller_obj = controller;
 
-    Returns the controller class.
+    Returns the current controller object.
 
   req
      $request_obj = req;
 
-    Returns the request object for this request.
+    Returns the request object for this request, an instance of
+    Catalyst::Request.
 
   res
      $response_obj = res;
 
-    Returns the response object for this request.
+    Returns the response object for this request, an instance of
+    Catalyst::Response.
 
   captured
      $value = captured($name);
@@ -136,21 +152,32 @@ EXPORTED FUNCTIONS
      };
 
   stash
-     $hash_ref = stash $key => $value, ...;
      $value = stash $key;
+     $hash_ref = stash $key => $value, ...;
+     $hash_ref = stash;
 
-    Set/get data from the stash.
+    Set/get data from the stash. The $hash_ref is a reference to what the
+    stash is holding.
+
+    This will be the same as:
+
+     $c->stash->{$key} = $value;
 
   session
-     $hash_ref == session $key => $value;
      $value = session $key;
+     $hash_ref == session $key => $value;
+     $hash_ref == session;
 
-    Set/get data from the session.
+    Set/get data from the session. The $hash_ref is a reference to what the
+    session is holding.
+
+    This function will only work if a session module/plugin is loaded into
+    Catalyst.
 
   report
-     report($level, $format, @args);
+     report $level, $format, @args;
 
-    Same as:
+    Almost the same as:
 
      $c->log->$level(sprintf $format, @args);
 
