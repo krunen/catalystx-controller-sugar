@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use lib qw(lib t/lib);
 use Catalyst::Test 'CataTest';
-use Test::More tests => 9;
+use Test::More tests => 10;
 use CataTest::FooPlugin;
 
 action_ok('/', "CataTest set up");
@@ -49,4 +49,9 @@ content_like(
     'plugin private data injected Root'
 );
 
+{
+    local $@;
+    eval { CataTest::FooPlugin->chain };
+    like($@, qr{Can't locate object method}, 'namespace is cleaned up');
+}
 

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use lib qw(lib t/lib);
 use Catalyst::Test 'CataTest';
-use Test::More tests => 16;
+use Test::More tests => 17;
 
 is(
     request("/foo-bar-default")->content,
@@ -86,3 +86,10 @@ is(
     "captured c1, capture foo endpoint",
     "capture action set up for Foo",
 );
+
+{ # test namespace::clean
+    local $@;
+    eval { CataTest::Controller::Sugar->chain };
+    like($@, qr{Can't locate object method}, 'namespace is cleaned up');
+}
+

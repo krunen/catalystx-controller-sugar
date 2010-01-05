@@ -1,6 +1,5 @@
 package CataTest::FooPlugin;
 
-use Moose;
 use CatalystX::Controller::Sugar::Plugin;
 
 has body_text => (

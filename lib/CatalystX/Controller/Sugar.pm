@@ -68,6 +68,7 @@ and C<$self> is available by calling L<controller()>.
 
 use Moose;
 use Moose::Exporter;
+use namespace::autoclean ();
 use Catalyst::Controller ();
 use Catalyst::Utils;
 use Data::Dumper ();
@@ -75,11 +76,12 @@ use Data::Dumper ();
 Moose::Exporter->setup_import_methods(
     with_meta => [qw/ chain private /],
     as_is => [qw/ c captured controller forward go req report res session stash /],
+    also => 'Moose',
 );
 
 our $VERSION = '0.05';
-our $ROOT = 'root';
-our $DEFAULT = 'default';
+our $ROOT = 'root'; # will be deprecated
+our $DEFAULT = 'default'; # will be deprecated
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
@@ -503,13 +505,16 @@ See L<Moose::Exporter>.
 =cut
 
 sub init_meta {
-    my $c   = shift;
-    my %p   = @_;
-    my $for = $p{'for_class'};
+    my $c = shift;
+    my %options = @_;
 
-    Moose->init_meta(%p);
+    Moose->init_meta(%options);
 
-    $for->meta->superclasses(qw/Catalyst::Controller/);
+    $options{'for_class'}->meta->superclasses(qw/Catalyst::Controller/);
+
+    namespace::autoclean->import(-cleanee => $options{'for_class'});
+
+    return $options{'for_class'}->meta;
 }
 
 =head1 BUGS

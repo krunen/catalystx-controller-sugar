@@ -33,6 +33,7 @@ See L<EXTENDED SYNOPSIS> for how to include attributes.
 
 use Moose;
 use Moose::Exporter;
+use namespace::autoclean ();
 use CatalystX::Controller::Sugar ();
 use Catalyst::Utils;
 use Data::Dumper ();
@@ -43,6 +44,7 @@ our $SYMBOL = '@ACTIONS';
 Moose::Exporter->setup_import_methods(
     with_meta => [qw/ chain private /],
     as_is => [qw/ inject /],
+    also => 'Moose',
 );
 
 =head1 EXPORTED FUNCTIONS
@@ -177,16 +179,13 @@ See L<Moose::Exporter>.
 =cut
 
 sub init_meta {
-    shift; # our selves
-    my %params = @_;
-    my @export = qw/ c captured controller forward go req report res session stash /;
+    my $c = shift;
+    my %options = @_;
     my $sugar_meta = CatalystX::Controller::Sugar->meta;
+    my @export = qw/ c captured controller forward go req report res session stash /;
     my $meta;
 
-    # moosify class: add meta class
-    Moose->init_meta(%params);
-
-    $meta = $params{'for_class'}->meta;
+    $meta = Moose->init_meta(%options) || $options{'for_class'}->meta;
 
     # add a variable where the plugin actions should be stored
     $meta->add_package_symbol($SYMBOL, []);
@@ -198,6 +197,13 @@ sub init_meta {
             $symbol => $sugar_meta->get_package_symbol($symbol)
         );
     }
+
+    # must not be cleaned by namespace::autoclean
+    $meta->add_method(inject => \&inject);
+
+    namespace::autoclean->import(-cleanee => $options{'for_class'});
+
+    return $meta;
 }
 
 =head1 EXTENDED SYNOPSIS
