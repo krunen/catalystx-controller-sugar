@@ -5,3 +5,9 @@
 /Makefile
 /Makefile.old
 *swp
+.help
+.vimrc
+
+# vroom generated slides
+/[0-9][0-9][0-9]
+/[0-9][0-9][0-9][a-z]
