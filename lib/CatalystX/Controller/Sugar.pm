@@ -17,40 +17,46 @@ rarely use any other actions - except of L</private>.
 
 =head1 SYNOPSIS
 
- use CatalystX::Controller::Sugar;
+  package MyApp::Controller::Root;
+  use CatalystX::Controller::Sugar;
+ 
+  __PACKAGE__->config->{'namespace'} = q();
+ 
+  # Private action
+  private authenticate => sub {
+    c->user_exists and return 1;
+  };
+ 
+  # Chain /
+  chain sub {
+    report debug => 'Someone tries to access %s', c->action;
+  };
 
- __PACKAGE__->config->{'namespace'} = q();
+  # Endpioint /*
+  chain '' => sub {
+    res->body('not found');
+  };
 
- # Private action
- private foo => sub {
-   res->body('Hey!');
- };
-
- # Chain /
- chain sub {
-    # root chain
- };
-
- # Chain /person/[id]/
- chain '/' => 'person' => ['id'], sub {
-   stash unique => rand;
-   res->print( captured('id') );
- };
-
- # Endpoint /person/*/edit/*
- chain '/person:1' => 'edit' => sub {
-   res->body( sprintf 'Person %s is unique: %s'
-     captured('id'), stash('unique')
-   );
- };
-
- # Endpoint /multi
- chain '/multi' => {
-   post => sub { ... },
-   get => sub { ... },
-   delete => sub { ... },
-   default => sub { ... },
- };
+  # Endpoint /login
+  chain login => {
+    get => sub {}, # show template
+    post => sub {
+      forward 'authenticate' and go '';
+    },
+  };
+ 
+  # Chain /user/[id]/*
+  chain user => ['id'], sub {
+    stash user => c->model('DB::User')->find($_[0]);
+  };
+ 
+  # Endpoint /user/[id]/view/*
+  chain 'user:1' => view => sub {
+    res->body(
+      sprintf 'Person is called: %s', stash->{'user'}->name
+    );
+  };
+ 
 
 =head1 NOTE
 
