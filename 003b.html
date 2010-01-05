@@ -37,13 +37,13 @@ function navigate(e) {
     Left side: Standard Catalyst
     Right side: With Cx::C::Sugar
     
-    use Moose                                              | use CatalystX::Controller::Sugar;
+    use Moose;                                             | use CatalystX::Controller::Sugar;
     BEGIN { extends 'Catalyst::Controller' }               |
     
     * Private action
     sub authenticate : Private {                           | private authenticate =&gt; sub {
         my($self, $c, @args) = @_;                         |     my @args = @_;
-    }                                                      | };
+    }                                                      | }; # note semicolon
     
 
 
