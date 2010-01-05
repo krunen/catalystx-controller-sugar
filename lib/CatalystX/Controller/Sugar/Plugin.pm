@@ -147,7 +147,7 @@ sub init_meta {
     $meta = Moose->init_meta(%options) || $options{'for_class'}->meta;
 
     Moose::Util::MetaRole::apply_metaclass_roles(
-        for_class => $options{'for_class'};
+        for_class => $options{'for_class'},
         metaclass_roles => [qw/CatalystX::Controller::Sugar::Meta::Role::Plugin/],
     );
 
