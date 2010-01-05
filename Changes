@@ -1,10 +1,14 @@
 Revision history for CatalystX-Controller-Sugar
 
-0.06     Sat Dec 26 18:34:01 2009 +0100
+0.07     Tue Jan  5 22:07:00 2010 +0100
        # NOT YET APPLIED
        - add support for moose method modifiers
        - add meta roles which handle actions
        - add namespace::autoclean for controllers with sugar
+
+0.06     Tue Jan  5 22:07:00 2010 +0100
+       - change "use Moose" is not required
+       - add namespace::clean to clean up droppings
 
 0.05     Wed Dec 16 22:45:00 2009 +0100
        - add CatalystX::Controller::Sugar::Plugin can be injected into

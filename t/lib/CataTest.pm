@@ -2,7 +2,8 @@ package CataTest;
 
 use Moose;
 use CataTest::FooPlugin;
-use Catalyst; # qw/-Debug/;
+
+extends 'Catalyst';
 
 # works:
 # not really a test, but will die in $VERSION<=0.04
@@ -11,6 +12,6 @@ after setup_components => sub {
 };
 
 __PACKAGE__->config( name => 'CataTest', root => '/some/dir' );
-__PACKAGE__->setup;
+__PACKAGE__->setup; # ('-Debug');
 
 1;

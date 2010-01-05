@@ -138,31 +138,33 @@ See L<Moose::Exporter>.
 sub init_meta {
     my $c = shift;
     my %options = @_;
-    my $for = $options{'for_class'};
     my $sugar_meta = CatalystX::Controller::Sugar->meta;
     my @export = qw/ c captured controller forward go req report res session stash /;
+    my $meta;
 
     Moose->init_meta(%options);
 
+    $meta = Moose->init_meta(%options) || $options{'for_class'}->meta;
+
     Moose::Util::MetaRole::apply_metaclass_roles(
-        for_class => $for,
+        for_class => $options{'for_class'};
         metaclass_roles => [qw/CatalystX::Controller::Sugar::Meta::Role::Plugin/],
     );
 
     # add functions from CatalystX::Controller::Sugar to make the
     # plugin module compile
     for my $symbol (map { "&$_" } @export) {
-        $for->meta->add_package_symbol(
+        $meta->add_package_symbol(
             $symbol => $sugar_meta->get_package_symbol($symbol)
         );
     }
 
     # must not be cleaned by namespace::autoclean
-    $for->meta->add_method(inject => \&inject);
+    $meta->add_method(inject => \&inject);
 
-    namespace::autoclean->import(-cleanee => $for);
+    namespace::autoclean->import(-cleanee => $options{'for_class'});
 
-    return $for->meta;
+    return $meta;
 }
 
 =head1 EXTENDED SYNOPSIS

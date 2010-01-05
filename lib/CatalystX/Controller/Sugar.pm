@@ -6,7 +6,7 @@ CatalystX::Controller::Sugar - Sugar for Catalyst controller
 
 =head1 VERSION
 
-0.05
+0.06
 
 =head1 DESCRIPTION
 
@@ -79,9 +79,9 @@ Moose::Exporter->setup_import_methods(
     also => 'Moose',
 );
 
-our $VERSION = '0.05';
-our $DEFAULT = 'default'; # will be deprecated
+our $VERSION = '0.06';
 our $ROOT = 'root'; # will be deprecated
+our $DEFAULT = 'default'; # will be deprecated
 our($RES, $REQ, $SELF, $CONTEXT, %CAPTURED);
 
 =head1 EXPORTED FUNCTIONS
@@ -354,20 +354,19 @@ See L<Moose::Exporter>.
 sub init_meta {
     my $c = shift;
     my %options = @_;
-    my $for = $options{'for_class'};
 
     Moose->init_meta(%options);
 
-    $for->meta->superclasses(qw/Catalyst::Controller/);
+    $options{'for_class'}->meta->superclasses(qw/Catalyst::Controller/);
 
     Moose::Util::MetaRole::apply_metaclass_roles(
-        for_class => $for,
+        for_class => $options{'for_class'},
         metaclass_roles => [qw/CatalystX::Controller::Sugar::Meta::Role/],
     );
 
-    namespace::autoclean->import(-cleanee => $for);
+    namespace::autoclean->import(-cleanee => $options{'for_class'});
 
-    return $for->meta;
+    return $options{'for_class'}->meta;
 }
 
 =head1 BUGS

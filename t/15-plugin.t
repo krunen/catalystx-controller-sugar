@@ -49,6 +49,8 @@ content_like(
     'plugin private data injected Root'
 );
 
-eval { CataTest::FooPlugin->chain() };
-like($@, qr{Can't locate object method}, 'namespace is cleaned up');
-
+{
+    local $@;
+    eval { CataTest::FooPlugin->chain };
+    like($@, qr{Can't locate object method}, 'namespace is cleaned up');
+}
