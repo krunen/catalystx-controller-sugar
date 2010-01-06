@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>003z</title>
+<title>003f</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <script>
 function navigate(e) {
@@ -8,11 +8,11 @@ function navigate(e) {
         ? e.keyCode
         : e.which;
     if (keynum == 8) {
-        window.location = "003f" + ".html";
+        window.location = "003e" + ".html";
         return false;
     }
     if (keynum == 13 || keynum == 32) {
-        window.location = "004" + ".html";
+        window.location = "003z" + ".html";
         return false;
     }
     if (keynum == 73 || keynum == 105) {
@@ -60,10 +60,10 @@ function navigate(e) {
         my($self, $c, @args) = @_;                         |     my @args = @_;
     }                                                      | };
     
-    * Endpoint: http://foo.com/search/*
-    sub search : Chained('/root') PathPart Args(1) {       | chain search =&gt; 1 =&gt; sub {
-        my($self, $c, $query) = @_;                        |     my $query = shift;
-    }                                                      | };
+
+
+
+
 
 
 

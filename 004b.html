@@ -43,7 +43,7 @@ function navigate(e) {
 
 
 
-                                           More chained actions with captures
+                                      More chained actions with captures
     * Chain: http://foo.com/user/*/...
     sub user : Chained('/') PathPart CaptureArgs(1) {  | chain user =&gt; [qw/id/], sub {
         my($self, $c, $id) = @_;                       |     my $id = shift;

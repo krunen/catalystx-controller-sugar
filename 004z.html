@@ -43,15 +43,15 @@ function navigate(e) {
 
 
 
-                                           More chained actions with captures
+                                      More chained actions with captures
     * Chain: http://foo.com/user/*/...
     sub user : Chained('/') PathPart CaptureArgs(1) {  | chain user =&gt; [qw/id/], sub {
         my($self, $c, $id) = @_;                       |     my $id = shift;
     }                                                  | };
-    * Endpoint: http://foo.com/user/*/...
+    * Endpoint: http://foo.com/user/*/edit/...
     sub edit : Chained('/user') PathPart Args {        | chain 'user:1' =&gt; edit =&gt; sub {
         my($self, $c, @args) = @_;                     |     my @args = @_;
-                                                       |     my $id = captured('id');
+                                                       |     my $id = captured('id'); # extra
     }                                                  | };
 
 

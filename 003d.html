@@ -31,12 +31,12 @@ function navigate(e) {
 
 
 
-
-                                              Chained and private actions
+                                         Chained and private actions
     
     Left side: Standard Catalyst
     Right side: With Cx::C::Sugar
     
+    package App::Controller::Foo                           | package App::Controller::Foo
     use Moose;                                             | use CatalystX::Controller::Sugar;
     BEGIN { extends 'Catalyst::Controller' }               |
     
@@ -50,11 +50,11 @@ function navigate(e) {
         my($self, $c) = @_;                                |     # no args
     }                                                      | };
     
-    * Endpoint: http://foo.com/...
-    sub default : Chained('/root') PathPart('') Args {     | chain '' =&gt; sub {
-        my($self, $c, @args) = @_;                         |     my @args = @_;
-    }                                                      | };
-    
+
+
+
+
+
 
 
 

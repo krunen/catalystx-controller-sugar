@@ -3,11 +3,11 @@
 title: CatalystX::Controller::Sugar
 indent: 4
 height: 50
-width: 120
+width: 110
 skip: 0
 
 ---- center
-CatalystX::Controller::Sugar!
+CatalystX::Controller::Sugar
 
 by Jan Henning Thorsen
 
@@ -16,11 +16,14 @@ by Jan Henning Thorsen
 ----
 == What is and why Cx::C::Sugar?
 
-* Written to simplify the way chained actions are written
++* Written to simplify the way chained actions are described
 +* Includes sugar to declare private actions as well
-+* Plus more sugar convenience
++* Plus more sugar for convenience
 
-(Hope there's no diabetics here...)
++sub foo :Private {
+    my($self, $c) = @_;
+    $c->stash->{'foo'} = 42;
+}
 
 ----
 == Chained and private actions
@@ -28,6 +31,7 @@ by Jan Henning Thorsen
 Left side: Standard Catalyst
 Right side: With Cx::C::Sugar
 
++package App::Controller::Foo                           | package App::Controller::Foo
 use Moose;                                             | use CatalystX::Controller::Sugar;
 BEGIN { extends 'Catalyst::Controller' }               |
 
@@ -61,10 +65,10 @@ sub search : Chained('/root') PathPart Args(1) {       | chain search => 1 => su
 sub user : Chained('/') PathPart CaptureArgs(1) {  | chain user => [qw/id/], sub {
     my($self, $c, $id) = @_;                       |     my $id = shift;
 }                                                  | };
-+* Endpoint: http://foo.com/user/*/...
++* Endpoint: http://foo.com/user/*/edit/...
 sub edit : Chained('/user') PathPart Args {        | chain 'user:1' => edit => sub {
     my($self, $c, @args) = @_;                     |     my @args = @_;
-                                                   |     my $id = captured('id');
+                                                   |     my $id = captured('id'); # extra
 }                                                  | };
 ----
 == What about $self and $c?
@@ -85,26 +89,15 @@ sub foo : Private {                     | private foo => sub {
 
 +* $c->forward('/some/action', ...)  | forward '/some/action', ...;
 +* $c->go('/some/action', ...)       | go '/some/action', ...;
-+* $c->req->$method                  | req->$method
-+* $c->res->$method                  | res->$method
++* $c->req->param('foo')             | req->param('foo')
++* $c->res->body('hello world')      | res->body('hello world')
 +* $c->stash->{'foo'} = 42           | stash foo => 42; or stash->{'foo'} = 42;
 +* $c->session->{'foo'} = 42         | session foo => 42; or session->{'foo'} = 42;
 +* $c->log->$level($msg);            | report $level => $format, @args;
 ----
-== More?
+== What about shared actions/plugins?
 
-* CatalystX::Controller::Sugar
- * CatalystX::Controller::Sugar::Plugin
-* CatalystX::Controller::Sugar::ActionPack
- * CatalystX::Controller::Sugar::ActionPack::Default
- * CatalystX::Controller::Sugar::ActionPack::End
- * CatalystX::Controller::Sugar::ActionPack::Error
- * CatalystX::Controller::Sugar::ActionPack::Merge
-
-----
-== Plugins ey?
-
-#==============================================================
++#==============================================================
 package App::FooPlugin;
 use CatalystX::Controller::Sugar::Plugin;
 
@@ -123,14 +116,52 @@ after setup_components => sub {
 };
 
 __PACKAGE__->setup;
+----
+== What about shared actions/plugins?
 
+Or...
+
++package App::Controller::Foo;
+use CatalystX::Controller::Sugar;
+use App::FooPlugin;
+
+App::FooPlugin->inject;
+
+1;
+----
+== What else?
+
++* CatalystX::Controller::Sugar
+ * CatalystX::Controller::Sugar::Plugin
++* CatalystX::Controller::Sugar::ActionPack
+ * CatalystX::Controller::Sugar::ActionPack::Default
+ * CatalystX::Controller::Sugar::ActionPack::End
+ * CatalystX::Controller::Sugar::ActionPack::Error
+ * CatalystX::Controller::Sugar::ActionPack::Merge
 ----
 == Alternatives?
 
-* Sugar:
++* Sugar:
  * CatalystX::Declare
 
+use CatalystX::Declare;
+
+controller MyApp::Web::Controller::Foo with MyApp::Web::ControllerRole::Bar {
+    action base under '/' as '';
+    under base {
+        final action welcome {
+            $ctx->response->body( $self->welcome_message );
+        }
+    }
+}
+
+----
+== Alternatives?
 * Plugins
  * Standard Catalyst with inheritance or roles
 ----
 == The end
+
+* Presentation: http://jhthorsen.github.com/catalystx-controller-sugar
+* Source:       http://github.com/jhthorsen/catalystx-controller-sugar
+* Module:       http://search.cpan.org/dist/CatalystX-Controller-Sugar

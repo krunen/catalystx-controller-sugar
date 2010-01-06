@@ -1,0 +1,78 @@
+<html>
+<head>
+<title>007z</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script>
+function navigate(e) {
+    var keynum = (window.event) // IE
+        ? e.keyCode
+        : e.which;
+    if (keynum == 8) {
+        window.location = "007" + ".html";
+        return false;
+    }
+    if (keynum == 13 || keynum == 32) {
+        window.location = "008" + ".html";
+        return false;
+    }
+    if (keynum == 73 || keynum == 105) {
+        window.location = "index.html";
+        return false;
+    }
+    return true;
+}
+</script>
+</head>
+<body onkeypress="return navigate(event)">
+<pre>
+
+
+
+
+
+
+
+
+
+
+
+
+                                      What about shared actions/plugins?
+    
+    #==============================================================
+    package App::FooPlugin;
+    use CatalystX::Controller::Sugar::Plugin;
+    
+    chain foo =&gt; sub {
+        # ...
+    };
+    
+    #==============================================================
+    package App;
+    use Moose;
+    extends 'Catalyst';
+    
+    after setup_components =&gt; sub {
+        App::FooPlugin-&gt;inject('App::Controller::Root');
+        App::FooPlugin-&gt;inject('App::Controller::NON_EXISTENT');
+    };
+    
+    __PACKAGE__-&gt;setup;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</body>

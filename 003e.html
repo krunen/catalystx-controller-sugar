@@ -12,7 +12,7 @@ function navigate(e) {
         return false;
     }
     if (keynum == 13 || keynum == 32) {
-        window.location = "003z" + ".html";
+        window.location = "003f" + ".html";
         return false;
     }
     if (keynum == 73 || keynum == 105) {
@@ -31,12 +31,12 @@ function navigate(e) {
 
 
 
-
-                                              Chained and private actions
+                                         Chained and private actions
     
     Left side: Standard Catalyst
     Right side: With Cx::C::Sugar
     
+    package App::Controller::Foo                           | package App::Controller::Foo
     use Moose;                                             | use CatalystX::Controller::Sugar;
     BEGIN { extends 'Catalyst::Controller' }               |
     
@@ -55,11 +55,11 @@ function navigate(e) {
         my($self, $c, @args) = @_;                         |     my @args = @_;
     }                                                      | };
     
-    * Endpoint: http://foo.com/info/...
-    sub info : Chained('/root') PathPart Args {            | chain info =&gt; sub {
-        my($self, $c, @args) = @_;                         |     my @args = @_;
-    }                                                      | };
-    
+
+
+
+
+
 
 
 
