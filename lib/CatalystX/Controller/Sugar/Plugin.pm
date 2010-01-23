@@ -40,6 +40,7 @@ use Data::Dumper ();
 
 Moose::Exporter->setup_import_methods(
     with_meta => [qw/ chain private /],
+    as_is => [qw/ inject /],
     also => 'Moose',
 );
 
@@ -159,10 +160,12 @@ sub init_meta {
         );
     }
 
+    # what is wrong here??
+    # why does it remove inject() ?
+    # namespace::autoclean->import(-cleanee => $options{'for_class'});
+
     # must not be cleaned by namespace::autoclean
     $meta->add_method(inject => \&inject);
-
-    namespace::autoclean->import(-cleanee => $options{'for_class'});
 
     return $meta;
 }
