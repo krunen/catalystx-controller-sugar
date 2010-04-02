@@ -57,8 +57,59 @@ rarely use any other actions - except of L</private>.
     );
   };
  
+=head2 Same with standard Catalyst syntax
 
-=head1 NOTE
+  package MyApp::Controller::Root;
+  use Moose;
+  BEGIN { extends 'Catalyst::Controller' }
+ 
+  __PACKAGE__->config->{'namespace'} = q();
+ 
+  # Private action
+  sub authenticate :Private {
+    my($self, $c) = @_;
+    $c->user_exists and return 1;
+  }
+ 
+  # Chain /
+  sub root :Chained("/") PathPart("") CaptureArgs(0) {
+    my($self, $c) = @_;
+    $c->log->debug(sprintf 'Someone tries to access %s', $c->action);
+  }
+
+  # Endpioint /*
+  sub default :Chained("/root") PathPart("") Args {
+    my($self, $c) = @_;
+    $c->res->body('not found');
+  }
+
+  # Endpoint /login
+  sub login :Chained("/root") PathPart Args {
+    my($self, $c) = @_;
+
+    if(lc $c->req->method eq 'get') {
+      return; # show template
+    }
+    elsif(lc $c->req->method eq 'post') {
+      $c->forward('authenticate') and go('');
+    }
+  }
+ 
+  # Chain /user/[id]/*
+  sub user :Chained("/root") PathPart CaptureArgs(1) {
+    my($self, $c, $id) = @_;
+
+    $c->stash->{'id'} = $id; # alternative to captured('id');
+    $c->stash->{'user'} = $c->model('DB::User')->find($id);
+  }
+ 
+  # Endpoint /user/[id]/view/*
+  sub user_view :Chained("/user") PathPart('view') Args {
+    my($self, $c) = @_;
+    $c->res->body(sprintf 'Person is called: %s', $c->stash->{'user'}->name);
+  }
+ 
+=head2 NOTE
 
 C<$self> and C<$c> is not part of the argument list inside a
 L<chain()> or L<private()> action. C<$c> is acquired by calling L<c()>,
