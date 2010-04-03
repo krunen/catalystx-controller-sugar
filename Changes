@@ -1,5 +1,8 @@
 Revision history for CatalystX-Controller-Sugar
 
+0.0701   Sat Apr  3 12:50:41 CEST 2010
+       - fix t/99-pod*.t
+
 0.07     Sat Apr  3 11:19:53 CEST 2010
        - update t/
        - update Changes date
