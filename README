@@ -2,7 +2,7 @@ NAME
     CatalystX::Controller::Sugar - Sugar for Catalyst controller
 
 VERSION
-    0.0701
+    0.0702
 
 DESCRIPTION
     This module is written to simplify the way controllers are written. I

@@ -1,6 +1,6 @@
 Revision history for CatalystX-Controller-Sugar
 
-0.0702
+0.0702   Sun May  2 07:13:41 CEST 2010
        - fix chain foo => $int => sub{}: Args is now set to the correct
          value.
 
