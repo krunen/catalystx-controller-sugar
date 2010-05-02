@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use lib qw(lib t/lib);
 use Catalyst::Test 'CataTest';
-use Test::More tests => 17;
+use Test::More tests => 18;
 
 is(
     request("/foo-bar-default")->content,
@@ -60,6 +60,11 @@ like(
     request("/sugar/ctrl")->content,
     qr{^CataTest::Controller::Sugar},
     "controller() returns controller class",
+);
+is(
+    request("/sugar/ctrl/foo")->content,
+    "default page (sugar ctrl foo)",
+    "invalid path because of Args=0",
 );
 is(
     request("/sugar/context")->content,
