@@ -12,8 +12,8 @@ CatalystX::Controller::Sugar - Sugar for Catalyst controller
 
 This module is written to simplify the way controllers are written. I
 personally think that shifting off C<$c> and C<$self> in every action is
-tidious. I also wanted a simpler API to created chained actions, since I
-rarely use any other actions - except of L</private>.
+tedious. I also wanted a simpler API to created chained actions, since I
+rarely use any other type of actions except L</private>.
 
 =head1 SYNOPSIS
 
